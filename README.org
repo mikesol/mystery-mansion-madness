@@ -1,0 +1,63 @@
+#+title: joyride-core
+#+author: purefunctor
+
+* Note Scale
+
+The =x= scale of each note depends on the number of columns and the =x= scale of the highway. Generally, the formula would be:
+
+#+begin_src
+noteScaleX = highwayScaleX / columnCount
+#+end_src
+
+* Highway Scale
+
+The =x= scale of the highway is generally pretty straightforward. Adding padding between the columns should also be trivial, but both the note scale and the note positioning would have to be adjusted.
+
+* Note Position
+
+The computation for the =x= position of the notes depends on the number of columns in the highway. For odd numbers (e.g. 5), the formula would be:
+
+#+begin_src
+leftFar = -noteScaleX * 2
+leftNear = -noteScaleX
+centerColumn = 0.0
+rightNear = noteScaleX
+rightFar = noteScaleX * 2
+#+end_src
+
+For even numbers (e.g. 4), the formula would be:
+
+#+begin_src
+leftFar = -noteScaleX - noteScaleX / 2
+leftNear = -noteScaleX / 2
+rightNear = noteScaleX / 2
+rightFar = noteScaleX + noteScaleX / 2
+#+end_src
+
+** Padded
+
+Given a =padding= added to =highwayScaleX=, we augment the formulae above:
+
+#+begin_src
+leftFar = -noteScaleX * 2 - padding / 6 * 2
+leftNear = -noteScaleX - padding / 6
+centerColumn = 0.0
+rightNear = noteScaleX + padding / 6
+rightFar = noteScaleX * 2 + padding / 6 * 2
+#+end_src
+
+#+begin_src
+spaceBetween = padding / 4
+leftFar = -noteScaleX - noteScaleX / 2 - spaceBetween - spaceBetween * 2
+leftNear = -noteScaleX / 2 - spaceBetween / 2
+rightNear = noteScaleX / 2 + spaceBetween / 2
+rightFar = noteScaleX + noteScaleX / 2  + spaceBetween + spaceBetween * 2
+#+end_src
+
+* Lane Dimming
+
+- Each lane has 4 touch areas that we can use raycasting to test whether or not they're being touched.
+- The dimming for each lane has two states, on and off.
+- The dimming can be turned on by directly touching the corresponding touch area or moving the touch to another. For the latter case, the touch doesn't necessarily need to occur around the touch areas for the lanes.
+- The dimming can be turned off by lifting the finger, moving to another touch area, or moving out of the touch area itself.
+- One special case is when two fingers are on the same touch area. The dimming should not be turned off as long as there is a touch occuring on that touch area.
