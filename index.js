@@ -5,7 +5,7 @@ import * as eruda from "eruda";
 import Stats from "stats.js";
 import * as three from "three";
 import { createCamera } from "./camera.js";
-import { createLaneNotes, createRailNotes, LANE_COLUMN, LANE_NOTE_POSITION_Z, RAIL_COLUMN, RAIL_NOTE_POSITION_Z } from './core/notes.js';
+import { createLaneNotes, createRailNotes, LANE_COLUMN, RAIL_COLUMN } from './core/notes.js';
 import { createHighway, createJudge, createRailJudge, createRails, createLaneDim, createRailDim } from './core/plane.js';
 import { createLaneTouchArea, createRailTouchArea, LANE_TOUCH_AREA_COLUMN, RAIL_TOUCH_AREA_COLUMN } from './core/touch.js';
 
@@ -26,17 +26,28 @@ const main = () => {
     const raycaster = new three.Raycaster();
 
     const scene = new three.Scene();
-    const { laneNoteMesh, laneNoteMatrices } = createLaneNotes([
-        { timing: 1.5, column: LANE_COLUMN.FAR_LEFT },
-        { timing: 2.0, column: LANE_COLUMN.NEAR_LEFT },
-        { timing: 2.5, column: LANE_COLUMN.NEAR_RIGHT },
-        { timing: 3.0, column: LANE_COLUMN.FAR_RIGHT },
-    ]);
+    let notes = [];
+    let lanes = [
+        LANE_COLUMN.FAR_LEFT,
+        LANE_COLUMN.NEAR_LEFT,
+        LANE_COLUMN.NEAR_RIGHT,
+        LANE_COLUMN.FAR_RIGHT,
+    ];
+    for (let i = 1.5, j = 0; i < 30.5; i += 0.20, j = (j + 1) % 4) {
+        notes.push({ timing: i, column: lanes[j] });
+    }
+    const { laneNoteMesh, laneNoteMatrices } = createLaneNotes(notes);
     scene.add(laneNoteMesh);
-    const { railNoteMesh, railNoteMatrices } = createRailNotes([
-        { timing: 1.5, column: RAIL_COLUMN.LEFT },
-        { timing: 3.0, column: RAIL_COLUMN.RIGHT },
-    ]);
+
+    notes = [];
+    lanes = [
+        RAIL_COLUMN.LEFT,
+        RAIL_COLUMN.RIGHT,
+    ];
+    for (let i = 1.5, j = 0; i < 30.5; i += 0.80, j = (j + 1) % 2) {
+        notes.push({ timing: i, column: lanes[j] });
+    }
+    const { railNoteMesh, railNoteMatrices } = createRailNotes(notes);
     scene.add(railNoteMesh);
 
     const highway = createHighway();
@@ -193,7 +204,8 @@ const main = () => {
             const elapsedTime = audioContext.currentTime - beginTime;
 
             for (const [index, { timing, matrix }] of laneNoteMatrices.entries()) {
-                if (timing - elapsedTime < 0) {
+                positionBuffer.setFromMatrixPosition(matrix);
+                if (positionBuffer.z > 1.0) {
                     continue;
                 }
                 if (elapsedTime > timing - movementThreshold) {
@@ -204,11 +216,11 @@ const main = () => {
             }
 
             for (const [index, { timing, matrix }] of railNoteMatrices.entries()) {
-                if (timing - elapsedTime < 0) {
+                positionBuffer.setFromMatrixPosition(matrix);
+                if (positionBuffer.z > 1.0) {
                     continue;
                 }
                 if (elapsedTime > timing - movementThreshold) {
-                    positionBuffer.setFromMatrixPosition(matrix);
                     positionBuffer.z = interpolate(elapsedTime, [timing - movementThreshold, timing], [-4.8, 0.0]);
                     railNoteMesh.setMatrixAt(index, matrix.setPosition(positionBuffer));
                 }
