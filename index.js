@@ -135,6 +135,7 @@ const main = () => {
         const needResize = canvas.width !== width || canvas.height !== height;
         if (needResize) {
             renderer.setSize(width, height, false);
+            cssRenderer.setSize(window.innerWidth, window.innerHeight);
             const canvas = renderer.domElement;
             camera.aspect = canvas.clientWidth / canvas.clientHeight;
             camera.updateProjectionMatrix();
@@ -146,7 +147,6 @@ const main = () => {
     const touching = {};
 
     const onStart = (event) => {
-        event.preventDefault();
         for (const touch of event.changedTouches) {
             pointerBuffer.x = (touch.clientX / window.innerWidth) * 2 - 1;
             pointerBuffer.y = -(touch.clientY / window.innerHeight) * 2 + 1;
@@ -165,7 +165,6 @@ const main = () => {
     };
 
     const onMove = (event) => {
-        event.preventDefault();
         for (const touch of event.changedTouches) {
             pointerBuffer.x = (touch.clientX / window.innerWidth) * 2 - 1;
             pointerBuffer.y = -(touch.clientY / window.innerHeight) * 2 + 1;
@@ -192,7 +191,6 @@ const main = () => {
     };
 
     const onEnd = (event) => {
-        event.preventDefault();
         for (const touch of event.changedTouches) {
             if (touch.identifier in touching) {
                 dims[touching[touch.identifier]].visible = false;
@@ -201,11 +199,53 @@ const main = () => {
         }
     };
 
-    canvas.addEventListener("touchstart", onStart);
-    canvas.addEventListener("touchmove", onMove);
-    canvas.addEventListener("touchend", onEnd);
+    const handleTouch = (event) => {
+        if (!isPlaying) {
+            return;
+        }
 
-    const movementThreshold = 1.25;
+        const elapsedTime = audioContext.currentTime - beginTime;
+
+        for (const touch of event.changedTouches) {
+            pointerBuffer.x = (touch.clientX / window.innerWidth) * 2 - 1;
+            pointerBuffer.y = -(touch.clientY / window.innerHeight) * 2 + 1;
+            raycaster.setFromCamera(pointerBuffer, camera);
+            const intersects = raycaster.intersectObjects(touchAreas);
+            if (intersects.length === 0) {
+                continue;
+            }
+            for (const { object: { uuid } } of intersects) {
+                const touchIndex = touchAreas.findIndex(element => element.uuid === uuid);
+                const touchColumn = [-1.5, -0.5, 0.5, 1.5, -1, 1][touchIndex];
+
+                for (const [index, { timing, hasHit, column }] of laneNoteMatrices.entries()) {
+                    if (hasHit) {
+                        continue;
+                    }
+                    if (elapsedTime > timing - 0.1 && elapsedTime < timing + 0.1 && column === touchColumn) {
+                        const untilPerfect = Math.abs(elapsedTime - timing);
+                        if (untilPerfect < 0.016) {
+                            scoreSpan.textContent = "Perfect! " + touchColumn;
+                            laneNoteMatrices[index].hasHit = true;
+                        } else if (untilPerfect < 0.032) {
+                            scoreSpan.textContent = "Perfect " + touchColumn;
+                            laneNoteMatrices[index].hasHit = true;
+                        } else if (untilPerfect < 0.050) {
+                            scoreSpan.textContent = "Near " + touchColumn;
+                            laneNoteMatrices[index].hasHit = true;
+                        }
+                    }
+                }
+            }
+        }
+    };
+
+    document.documentElement.addEventListener("touchstart", handleTouch);
+    document.documentElement.addEventListener("touchstart", onStart);
+    document.documentElement.addEventListener("touchmove", onMove);
+    document.documentElement.addEventListener("touchend", onEnd);
+
+    const movementThreshold = 1.5;
 
     const renderLoop = () => {
         raycaster.setFromCamera(pointerBuffer, camera);
@@ -219,7 +259,6 @@ const main = () => {
                     continue;
                 }
                 if (elapsedTime > timing - movementThreshold) {
-                    positionBuffer.setFromMatrixPosition(matrix);
                     positionBuffer.z = interpolate(elapsedTime, [timing - movementThreshold, timing], [-4.8, 0.0]);
                     laneNoteMesh.setMatrixAt(index, matrix.setPosition(positionBuffer));
                 }

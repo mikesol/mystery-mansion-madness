@@ -32,6 +32,8 @@ export const createLaneNotes = (notes) => {
         laneNoteMatrices.push({
             timing: note.timing,
             matrix: noteMatrix,
+            hasHit: false,
+            column: note.column,
         });
     }
     return { laneNoteMesh, laneNoteMatrices }
