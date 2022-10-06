@@ -4,6 +4,7 @@ import GUI from "lil-gui";
 import * as eruda from "eruda";
 import Stats from "stats.js";
 import * as three from "three";
+import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 import { createCamera } from "./camera.js";
 import { createLaneNotes, createRailNotes, LANE_COLUMN, RAIL_COLUMN } from './core/notes.js';
 import { createHighway, createJudge, createRailJudge, createRails, createLaneDim, createRailDim } from './core/plane.js';
@@ -22,6 +23,11 @@ const main = () => {
     document.body.appendChild(stats.dom);
     const canvas = document.getElementById("joyride-canvas");
     const renderer = new three.WebGLRenderer({ canvas, alpha: true });
+    const cssRenderer = new CSS2DRenderer();
+    cssRenderer.setSize(window.innerWidth, window.innerHeight);
+    cssRenderer.domElement.style.position = 'absolute';
+    cssRenderer.domElement.style.top = '0px';
+    document.body.appendChild(cssRenderer.domElement);
     const camera = createCamera(canvas.clientWidth / canvas.clientHeight);
     const raycaster = new three.Raycaster();
 
@@ -33,7 +39,7 @@ const main = () => {
         LANE_COLUMN.NEAR_RIGHT,
         LANE_COLUMN.FAR_RIGHT,
     ];
-    for (let i = 1.5, j = 0; i < 30.5; i += 0.20, j = (j + 1) % 4) {
+    for (let i = 1.5, j = 0; i < 31.0; i += 0.20, j = (j + 1) % 4) {
         notes.push({ timing: i, column: lanes[j] });
     }
     const { laneNoteMesh, laneNoteMatrices } = createLaneNotes(notes);
@@ -44,7 +50,7 @@ const main = () => {
         RAIL_COLUMN.LEFT,
         RAIL_COLUMN.RIGHT,
     ];
-    for (let i = 1.5, j = 0; i < 30.5; i += 0.80, j = (j + 1) % 2) {
+    for (let i = 1.5, j = 0; i < 31.0; i += 0.80, j = (j + 1) % 2) {
         notes.push({ timing: i, column: lanes[j] });
     }
     const { railNoteMesh, railNoteMatrices } = createRailNotes(notes);
@@ -82,6 +88,12 @@ const main = () => {
     for (const touchArea of touchAreas) {
         scene.add(touchArea);
     }
+
+    const scoreSpan = document.createElement('span');
+    scoreSpan.id = "score-text";
+    scoreSpan.textContent = "...";
+    const scoreLabel = new CSS2DObject(scoreSpan);
+    scene.add(scoreLabel);
 
     let audioContext = null;
     let beginTime = null;
@@ -193,11 +205,9 @@ const main = () => {
     canvas.addEventListener("touchmove", onMove);
     canvas.addEventListener("touchend", onEnd);
 
-    const movementThreshold = 1.0;
+    const movementThreshold = 1.25;
 
     const renderLoop = () => {
-        stats.begin();
-
         raycaster.setFromCamera(pointerBuffer, camera);
 
         if (isPlaying) {
@@ -231,10 +241,13 @@ const main = () => {
         }
 
         tryResizeRendererToDisplay();
-        renderer.render(scene, camera);
-        requestAnimationFrame(renderLoop);
 
+        stats.begin();
+        renderer.render(scene, camera);
+        cssRenderer.render(scene, camera);
         stats.end();
+
+        requestAnimationFrame(renderLoop);
     };
 
     requestAnimationFrame(renderLoop);
