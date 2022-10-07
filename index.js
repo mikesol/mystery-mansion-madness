@@ -9,6 +9,7 @@ import { createCamera } from "./camera.js";
 import { createLaneNotes, createRailNotes, LANE_COLUMN, RAIL_COLUMN } from './core/notes.js';
 import { createHighway, createJudge, createRailJudge, createRails, createLaneDim, createRailDim } from './core/plane.js';
 import { createLaneTouchArea, createRailTouchArea, LANE_TOUCH_AREA_COLUMN, RAIL_TOUCH_AREA_COLUMN } from './core/touch.js';
+import Deque from "double-ended-queue";
 
 eruda.init();
 
@@ -42,7 +43,7 @@ const main = () => {
     for (let i = 1.5, j = 0; i < 31.0; i += 0.20, j = (j + 1) % 4) {
         notes.push({ timing: i, column: lanes[j] });
     }
-    const { laneNoteMesh, laneNoteMatrices } = createLaneNotes(notes);
+    const { laneNoteMesh, laneNoteInfo } = createLaneNotes(notes);
     scene.add(laneNoteMesh);
 
     notes = [];
@@ -53,7 +54,7 @@ const main = () => {
     for (let i = 1.5, j = 0; i < 31.0; i += 0.80, j = (j + 1) % 2) {
         notes.push({ timing: i, column: lanes[j] });
     }
-    const { railNoteMesh, railNoteMatrices } = createRailNotes(notes);
+    const { railNoteMesh, railNoteInfo } = createRailNotes(notes);
     scene.add(railNoteMesh);
 
     const highway = createHighway();
@@ -216,23 +217,50 @@ const main = () => {
             }
             for (const { object: { uuid } } of intersects) {
                 const touchIndex = touchAreas.findIndex(element => element.uuid === uuid);
-                const touchColumn = [-1.5, -0.5, 0.5, 1.5, -1, 1][touchIndex];
+                const touchColumn = ["-1.5", "-0.5", "0.5", "1.5", "-1", "1"][touchIndex];
 
-                for (const [index, { timing, hasHit, column }] of laneNoteMatrices.entries()) {
-                    if (hasHit) {
+                for (const [column, notes] of Object.entries(activeLaneNoteInfo)) {
+                    if (notes.length === 0 || column !== touchColumn) {
                         continue;
                     }
-                    if (elapsedTime > timing - 0.1 && elapsedTime < timing + 0.1 && column === touchColumn) {
-                        const untilPerfect = Math.abs(elapsedTime - timing);
+                    const latestNote = notes.peekFront();
+                    if (latestNote.hasHit) {
+                        continue;
+                    }
+                    if (elapsedTime > latestNote.timing - 0.1 && elapsedTime < latestNote.timing + 0.1) {
+                        const untilPerfect = Math.abs(elapsedTime - latestNote.timing);
                         if (untilPerfect < 0.016) {
                             scoreSpan.textContent = "Perfect! " + touchColumn;
-                            laneNoteMatrices[index].hasHit = true;
+                            latestNote.hasHit = true;
                         } else if (untilPerfect < 0.032) {
                             scoreSpan.textContent = "Perfect " + touchColumn;
-                            laneNoteMatrices[index].hasHit = true;
+                            latestNote.hasHit = true;
                         } else if (untilPerfect < 0.050) {
                             scoreSpan.textContent = "Near " + touchColumn;
-                            laneNoteMatrices[index].hasHit = true;
+                            latestNote.hasHit = true;
+                        }
+                    }
+                }
+
+                for (const [column, notes] of Object.entries(activeRailNoteInfo)) {
+                    if (notes.length === 0 || column !== touchColumn) {
+                        continue;
+                    }
+                    const latestNote = notes.peekFront();
+                    if (latestNote.hasHit) {
+                        continue;
+                    }
+                    if (elapsedTime > latestNote.timing - 0.1 && elapsedTime < latestNote.timing + 0.1) {
+                        const untilPerfect = Math.abs(elapsedTime - latestNote.timing);
+                        if (untilPerfect < 0.016) {
+                            scoreSpan.textContent = "Perfect! " + touchColumn;
+                            latestNote.hasHit = true;
+                        } else if (untilPerfect < 0.032) {
+                            scoreSpan.textContent = "Perfect " + touchColumn;
+                            latestNote.hasHit = true;
+                        } else if (untilPerfect < 0.050) {
+                            scoreSpan.textContent = "Near " + touchColumn;
+                            latestNote.hasHit = true;
                         }
                     }
                 }
@@ -247,31 +275,84 @@ const main = () => {
 
     const movementThreshold = 1.5;
 
+    const activeLaneNoteInfo = {};
+    for (const key of Object.keys(laneNoteInfo)) {
+        activeLaneNoteInfo[key] = new Deque();
+    }
+    const activeRailNoteInfo = {};
+    for (const key of Object.keys(railNoteInfo)) {
+        activeRailNoteInfo[key] = new Deque();
+    }
+
     const renderLoop = () => {
         raycaster.setFromCamera(pointerBuffer, camera);
 
         if (isPlaying) {
             const elapsedTime = audioContext.currentTime - beginTime;
 
-            for (const [index, { timing, matrix }] of laneNoteMatrices.entries()) {
-                positionBuffer.setFromMatrixPosition(matrix);
-                if (positionBuffer.z > 1.0) {
-                    continue;
-                }
-                if (elapsedTime > timing - movementThreshold) {
-                    positionBuffer.z = interpolate(elapsedTime, [timing - movementThreshold, timing], [-4.8, 0.0]);
-                    laneNoteMesh.setMatrixAt(index, matrix.setPosition(positionBuffer));
+            for (const [index, notes] of Object.entries(laneNoteInfo)) {
+                while (true) {
+                    const latestNote = notes.at(-1);
+                    if (latestNote === undefined) {
+                        break;
+                    }
+                    if (elapsedTime > latestNote.timing - movementThreshold) {
+                        activeLaneNoteInfo[index].push(notes.pop());
+                    } else {
+                        break;
+                    }
                 }
             }
 
-            for (const [index, { timing, matrix }] of railNoteMatrices.entries()) {
-                positionBuffer.setFromMatrixPosition(matrix);
-                if (positionBuffer.z > 1.0) {
-                    continue;
+            for (const [index, notes] of Object.entries(railNoteInfo)) {
+                while (true) {
+                    const latestNote = notes.at(-1);
+                    if (latestNote === undefined) {
+                        break;
+                    }
+                    if (elapsedTime > latestNote.timing - movementThreshold) {
+                        activeRailNoteInfo[index].push(notes.pop());
+                    } else {
+                        break;
+                    }
                 }
-                if (elapsedTime > timing - movementThreshold) {
+            }
+
+            for (const notes of Object.values(activeLaneNoteInfo)) {
+                for (const { timing, matrix, index } of notes.toArray()) {
+                    positionBuffer.setFromMatrixPosition(matrix);
+                    positionBuffer.z = interpolate(elapsedTime, [timing - movementThreshold, timing], [-4.8, 0.0]);
+                    laneNoteMesh.setMatrixAt(index, matrix.setPosition(positionBuffer));
+                }
+                while (true) {
+                    const latestNote = notes.peekFront();
+                    if (latestNote === undefined) {
+                        break;
+                    }
+                    if (elapsedTime > latestNote.timing + 0.1) {
+                        notes.removeFront();
+                    } else {
+                        break;
+                    }
+                }
+            }
+
+            for (const notes of Object.values(activeRailNoteInfo)) {
+                for (const { timing, matrix, index } of notes.toArray()) {
+                    positionBuffer.setFromMatrixPosition(matrix);
                     positionBuffer.z = interpolate(elapsedTime, [timing - movementThreshold, timing], [-4.8, 0.0]);
                     railNoteMesh.setMatrixAt(index, matrix.setPosition(positionBuffer));
+                }
+                while (true) {
+                    const latestNote = notes.peekFront();
+                    if (latestNote === undefined) {
+                        break;
+                    }
+                    if (elapsedTime > latestNote.timing + 0.1) {
+                        notes.removeFront();
+                    } else {
+                        break;
+                    }
                 }
             }
 

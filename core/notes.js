@@ -20,8 +20,8 @@ export const LANE_COLUMN = {
 
 export const createLaneNotes = (notes) => {
     const laneNoteMesh = new three.InstancedMesh(LANE_NOTE_GEOMETRY, LANE_NOTE_MATERIAL, notes.length);
-    const laneNoteMatrices = [];
-    for (const [index, note] of notes.entries()) {
+    const laneNoteInfo = {};
+    for (const [index, note] of notes.reverse().entries()) {
         const noteMatrix = new three.Matrix4();
         noteMatrix.setPosition(new three.Vector3(
             (LANE_NOTE_SCALE_X + LANE_NOTE_SPACE_BETWEEN) * note.column,
@@ -29,14 +29,17 @@ export const createLaneNotes = (notes) => {
             LANE_NOTE_POSITION_Z,
         ));
         laneNoteMesh.setMatrixAt(index, noteMatrix);
-        laneNoteMatrices.push({
+        if (laneNoteInfo[note.column] === undefined) {
+            laneNoteInfo[note.column] = [];
+        }
+        laneNoteInfo[note.column].push({
             timing: note.timing,
             matrix: noteMatrix,
             hasHit: false,
-            column: note.column,
+            index: index,
         });
     }
-    return { laneNoteMesh, laneNoteMatrices }
+    return { laneNoteMesh, laneNoteInfo }
 }
 
 export const RAIL_NOTE_SCALE_X = RAIL_SCALE_X_BASE;
@@ -53,8 +56,8 @@ export const RAIL_COLUMN = {
 
 export const createRailNotes = (notes) => {
     const railNoteMesh = new three.InstancedMesh(RAIL_NOTE_GEOMETRY, RAIL_NOTE_MATERIAL, notes.length);
-    const railNoteMatrices = [];
-    for (const [index, note] of notes.entries()) {
+    const railNoteInfo = {};
+    for (const [index, note] of notes.reverse().entries()) {
         const noteMatrix = new three.Matrix4();
         noteMatrix.makeRotationZ(RAIL_NOTE_ROTATION_Z * note.column);
         noteMatrix.setPosition(
@@ -63,10 +66,15 @@ export const createRailNotes = (notes) => {
             RAIL_NOTE_POSITION_Z,
         );
         railNoteMesh.setMatrixAt(index, noteMatrix);
-        railNoteMatrices.push({
+        if (railNoteInfo[note.column] === undefined) {
+            railNoteInfo[note.column] = [];
+        }
+        railNoteInfo[note.column].push({
             timing: note.timing,
             matrix: noteMatrix,
+            hasHit: false,
+            index: index,
         });
     }
-    return { railNoteMesh, railNoteMatrices };
+    return { railNoteMesh, railNoteInfo };
 }

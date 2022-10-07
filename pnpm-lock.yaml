@@ -1,6 +1,7 @@
 lockfileVersion: 5.4
 
 specifiers:
+  double-ended-queue: 2.1.0-0
   eruda: ^2.5.0
   lil-gui: ^0.17.0
   stats.js: ^0.17.0
@@ -8,6 +9,7 @@ specifiers:
   vite: ^3.1.0
 
 dependencies:
+  double-ended-queue: 2.1.0-0
   eruda: 2.5.0
   lil-gui: 0.17.0
   three: 0.144.0
@@ -26,6 +28,10 @@ packages:
     requiresBuild: true
     dev: true
     optional: true
+
+  /double-ended-queue/2.1.0-0:
+    resolution: {integrity: sha512-+BNfZ+deCo8hMNpDqDnvT+c0XpJ5cUa6mqYq89bho2Ifze4URTqRkcwR399hWoTrTkbZ/XJYDgP6rc7pRgffEQ==}
+    dev: false
 
   /eruda/2.5.0:
     resolution: {integrity: sha512-ardSJe7AfCPTzaLJVieX0FwzuL56rDDFemnK1ETcZPsrZcUqYAjUb7gpJPgSj9x06PmeGGGFJKrSlZ0F0d4lJQ==}
