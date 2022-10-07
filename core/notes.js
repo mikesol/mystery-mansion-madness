@@ -20,7 +20,7 @@ export const LANE_COLUMN = {
 
 export const createLaneNotes = (notes) => {
     const laneNoteMesh = new three.InstancedMesh(LANE_NOTE_GEOMETRY, LANE_NOTE_MATERIAL, notes.length);
-    const laneNoteInfo = {};
+    const laneNoteInfo = [];
     for (const [index, note] of notes.reverse().entries()) {
         const noteMatrix = new three.Matrix4();
         noteMatrix.setPosition(new three.Vector3(
@@ -29,14 +29,12 @@ export const createLaneNotes = (notes) => {
             LANE_NOTE_POSITION_Z,
         ));
         laneNoteMesh.setMatrixAt(index, noteMatrix);
-        if (laneNoteInfo[note.column] === undefined) {
-            laneNoteInfo[note.column] = [];
-        }
-        laneNoteInfo[note.column].push({
+        laneNoteInfo.push({
             timing: note.timing,
             matrix: noteMatrix,
             hasHit: false,
             index: index,
+            colomn: note.column,
         });
     }
     return { laneNoteMesh, laneNoteInfo }
@@ -56,7 +54,7 @@ export const RAIL_COLUMN = {
 
 export const createRailNotes = (notes) => {
     const railNoteMesh = new three.InstancedMesh(RAIL_NOTE_GEOMETRY, RAIL_NOTE_MATERIAL, notes.length);
-    const railNoteInfo = {};
+    const railNoteInfo = [];
     for (const [index, note] of notes.reverse().entries()) {
         const noteMatrix = new three.Matrix4();
         noteMatrix.makeRotationZ(RAIL_NOTE_ROTATION_Z * note.column);
@@ -66,14 +64,12 @@ export const createRailNotes = (notes) => {
             RAIL_NOTE_POSITION_Z,
         );
         railNoteMesh.setMatrixAt(index, noteMatrix);
-        if (railNoteInfo[note.column] === undefined) {
-            railNoteInfo[note.column] = [];
-        }
-        railNoteInfo[note.column].push({
+        railNoteInfo.push({
             timing: note.timing,
             matrix: noteMatrix,
             hasHit: false,
             index: index,
+            column: note.column,
         });
     }
     return { railNoteMesh, railNoteInfo };

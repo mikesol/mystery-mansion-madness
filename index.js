@@ -216,52 +216,44 @@ const main = () => {
                 continue;
             }
             for (const { object: { uuid } } of intersects) {
+                const latestLaneNote = activeLaneNoteInfo.peekFront();
+                if (latestLaneNote === undefined) {
+                    continue;
+                }
+
+                const latestRailNote = activeRailNoteInfo.peekFront();
+                if (latestLaneNote === undefined) {
+                    continue;
+                }
+
                 const touchIndex = touchAreas.findIndex(element => element.uuid === uuid);
                 const touchColumn = ["-1.5", "-0.5", "0.5", "1.5", "-1", "1"][touchIndex];
 
-                for (const [column, notes] of Object.entries(activeLaneNoteInfo)) {
-                    if (notes.length === 0 || column !== touchColumn) {
-                        continue;
-                    }
-                    const latestNote = notes.peekFront();
-                    if (latestNote.hasHit) {
-                        continue;
-                    }
-                    if (elapsedTime > latestNote.timing - 0.1 && elapsedTime < latestNote.timing + 0.1) {
-                        const untilPerfect = Math.abs(elapsedTime - latestNote.timing);
-                        if (untilPerfect < 0.016) {
-                            scoreSpan.textContent = "Perfect! " + touchColumn;
-                            latestNote.hasHit = true;
-                        } else if (untilPerfect < 0.032) {
-                            scoreSpan.textContent = "Perfect " + touchColumn;
-                            latestNote.hasHit = true;
-                        } else if (untilPerfect < 0.050) {
-                            scoreSpan.textContent = "Near " + touchColumn;
-                            latestNote.hasHit = true;
-                        }
+                if (elapsedTime > latestLaneNote.timing - 0.1 && elapsedTime < latestLaneNote.timing + 0.1) {
+                    const untilPerfect = Math.abs(elapsedTime - latestLaneNote.timing);
+                    if (untilPerfect < 0.016) {
+                        scoreSpan.textContent = "Perfect! " + touchColumn;
+                        latestLaneNote.hasHit = true;
+                    } else if (untilPerfect < 0.032) {
+                        scoreSpan.textContent = "Perfect " + touchColumn;
+                        latestLaneNote.hasHit = true;
+                    } else if (untilPerfect > 0.032) {
+                        scoreSpan.textContent = "Near " + touchColumn;
+                        latestLaneNote.hasHit = true;
                     }
                 }
 
-                for (const [column, notes] of Object.entries(activeRailNoteInfo)) {
-                    if (notes.length === 0 || column !== touchColumn) {
-                        continue;
-                    }
-                    const latestNote = notes.peekFront();
-                    if (latestNote.hasHit) {
-                        continue;
-                    }
-                    if (elapsedTime > latestNote.timing - 0.1 && elapsedTime < latestNote.timing + 0.1) {
-                        const untilPerfect = Math.abs(elapsedTime - latestNote.timing);
-                        if (untilPerfect < 0.016) {
-                            scoreSpan.textContent = "Perfect! " + touchColumn;
-                            latestNote.hasHit = true;
-                        } else if (untilPerfect < 0.032) {
-                            scoreSpan.textContent = "Perfect " + touchColumn;
-                            latestNote.hasHit = true;
-                        } else if (untilPerfect < 0.050) {
-                            scoreSpan.textContent = "Near " + touchColumn;
-                            latestNote.hasHit = true;
-                        }
+                if (elapsedTime > latestRailNote.timing - 0.1 && elapsedTime < latestRailNote.timing + 0.1) {
+                    const untilPerfect = Math.abs(elapsedTime - latestRailNote.timing);
+                    if (untilPerfect < 0.016) {
+                        scoreSpan.textContent = "Perfect! " + touchColumn;
+                        latestRailNote.hasHit = true;
+                    } else if (untilPerfect < 0.032) {
+                        scoreSpan.textContent = "Perfect " + touchColumn;
+                        latestRailNote.hasHit = true;
+                    } else if (untilPerfect > 0.032) {
+                        scoreSpan.textContent = "Near " + touchColumn;
+                        latestRailNote.hasHit = true;
                     }
                 }
             }
@@ -275,14 +267,8 @@ const main = () => {
 
     const movementThreshold = 1.5;
 
-    const activeLaneNoteInfo = {};
-    for (const key of Object.keys(laneNoteInfo)) {
-        activeLaneNoteInfo[key] = new Deque();
-    }
-    const activeRailNoteInfo = {};
-    for (const key of Object.keys(railNoteInfo)) {
-        activeRailNoteInfo[key] = new Deque();
-    }
+    const activeLaneNoteInfo = new Deque();
+    const activeRailNoteInfo = new Deque();
 
     const renderLoop = () => {
         raycaster.setFromCamera(pointerBuffer, camera);
@@ -290,69 +276,63 @@ const main = () => {
         if (isPlaying) {
             const elapsedTime = audioContext.currentTime - beginTime;
 
-            for (const [index, notes] of Object.entries(laneNoteInfo)) {
-                while (true) {
-                    const latestNote = notes.at(-1);
-                    if (latestNote === undefined) {
-                        break;
-                    }
-                    if (elapsedTime > latestNote.timing - movementThreshold) {
-                        activeLaneNoteInfo[index].push(notes.pop());
-                    } else {
-                        break;
-                    }
+            while (true) {
+                const latestNote = laneNoteInfo.at(-1);
+                if (latestNote === undefined) {
+                    break;
+                }
+                if (elapsedTime > latestNote.timing - movementThreshold) {
+                    activeLaneNoteInfo.push(laneNoteInfo.pop());
+                } else {
+                    break;
                 }
             }
 
-            for (const [index, notes] of Object.entries(railNoteInfo)) {
-                while (true) {
-                    const latestNote = notes.at(-1);
-                    if (latestNote === undefined) {
-                        break;
-                    }
-                    if (elapsedTime > latestNote.timing - movementThreshold) {
-                        activeRailNoteInfo[index].push(notes.pop());
-                    } else {
-                        break;
-                    }
+            while (true) {
+                const latestNote = railNoteInfo.at(-1);
+                if (latestNote === undefined) {
+                    break;
+                }
+                if (elapsedTime > latestNote.timing - movementThreshold) {
+                    activeRailNoteInfo.push(railNoteInfo.pop());
+                } else {
+                    break;
                 }
             }
 
-            for (const notes of Object.values(activeLaneNoteInfo)) {
-                for (const { timing, matrix, index } of notes.toArray()) {
-                    positionBuffer.setFromMatrixPosition(matrix);
-                    positionBuffer.z = interpolate(elapsedTime, [timing - movementThreshold, timing], [-4.8, 0.0]);
-                    laneNoteMesh.setMatrixAt(index, matrix.setPosition(positionBuffer));
+            for (const { timing, index, matrix } of activeLaneNoteInfo.toArray()) {
+                positionBuffer.setFromMatrixPosition(matrix);
+                positionBuffer.z = interpolate(elapsedTime, [timing - movementThreshold, timing], [-4.8, 0.0]);
+                laneNoteMesh.setMatrixAt(index, matrix.setPosition(positionBuffer));
+            }
+
+            for (const { timing, index, matrix } of activeRailNoteInfo.toArray()) {
+                positionBuffer.setFromMatrixPosition(matrix);
+                positionBuffer.z = interpolate(elapsedTime, [timing - movementThreshold, timing], [-4.8, 0.0]);
+                railNoteMesh.setMatrixAt(index, matrix.setPosition(positionBuffer));
+            }
+
+            while (true) {
+                const latestNote = activeLaneNoteInfo.peekFront();
+                if (latestNote === undefined) {
+                    break;
                 }
-                while (true) {
-                    const latestNote = notes.peekFront();
-                    if (latestNote === undefined) {
-                        break;
-                    }
-                    if (elapsedTime > latestNote.timing + 0.1) {
-                        notes.removeFront();
-                    } else {
-                        break;
-                    }
+                if (elapsedTime > latestNote.timing + 0.1) {
+                    activeLaneNoteInfo.removeFront();
+                } else {
+                    break;
                 }
             }
 
-            for (const notes of Object.values(activeRailNoteInfo)) {
-                for (const { timing, matrix, index } of notes.toArray()) {
-                    positionBuffer.setFromMatrixPosition(matrix);
-                    positionBuffer.z = interpolate(elapsedTime, [timing - movementThreshold, timing], [-4.8, 0.0]);
-                    railNoteMesh.setMatrixAt(index, matrix.setPosition(positionBuffer));
+            while (true) {
+                const latestNote = activeRailNoteInfo.peekFront();
+                if (latestNote === undefined) {
+                    break;
                 }
-                while (true) {
-                    const latestNote = notes.peekFront();
-                    if (latestNote === undefined) {
-                        break;
-                    }
-                    if (elapsedTime > latestNote.timing + 0.1) {
-                        notes.removeFront();
-                    } else {
-                        break;
-                    }
+                if (elapsedTime > latestNote.timing + 0.1) {
+                    activeRailNoteInfo.removeFront();
+                } else {
+                    break;
                 }
             }
 
