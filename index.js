@@ -96,12 +96,19 @@ const main = () => {
     const scoreLabel = new CSS2DObject(scoreSpan);
     scene.add(scoreLabel);
 
+    const comboSpan = document.createElement('span');
+    comboSpan.id = "combo-text";
+    comboSpan.textContent = "0";
+    const comboLabel = new CSS2DObject(comboSpan);
+    scene.add(comboLabel);
+
     let audioContext = null;
     let beginTime = null;
     let isPlaying = false;
+    let comboCount = 0;
 
     const context = {
-        noteSpeed: 0.025,
+        movementThreshold: 1.0,
         toggleDims: function () {
             for (const dim of dims) {
                 dim.visible = !dim.visible;
@@ -125,7 +132,7 @@ const main = () => {
 
     gui.add(context, "toggleDims").name("Toggle Dims");
     gui.add(context, "toggleFullScreen").name("Toggle Full Screen");
-    gui.add(context, "noteSpeed", 0, 0.1).name("Note Speed");
+    gui.add(context, "movementThreshold", 0.5, 1.5).name("Movement Threshold");
     gui.add(context, "togglePlayBack").name("Toggle Playback");
 
     const tryResizeRendererToDisplay = () => {
@@ -145,60 +152,60 @@ const main = () => {
 
     const pointerBuffer = new three.Vector2();
     const positionBuffer = new three.Vector3();
-    const touching = {};
+    // const touching = {};
 
-    const onStart = (event) => {
-        for (const touch of event.changedTouches) {
-            pointerBuffer.x = (touch.clientX / window.innerWidth) * 2 - 1;
-            pointerBuffer.y = -(touch.clientY / window.innerHeight) * 2 + 1;
-            raycaster.setFromCamera(pointerBuffer, camera);
-            const intersects = raycaster.intersectObjects(touchAreas);
-            if (intersects.length === 0) {
-                continue;
-            }
-            for (const { object: { uuid } } of intersects) {
-                touching[touch.identifier] = touchAreas.findIndex(element => element.uuid === uuid);
-            }
-        }
-        for (const index of Object.values(touching)) {
-            dims[index].visible = true;
-        }
-    };
+    // const onStart = (event) => {
+    //     for (const touch of event.changedTouches) {
+    //         pointerBuffer.x = (touch.clientX / window.innerWidth) * 2 - 1;
+    //         pointerBuffer.y = -(touch.clientY / window.innerHeight) * 2 + 1;
+    //         raycaster.setFromCamera(pointerBuffer, camera);
+    //         const intersects = raycaster.intersectObjects(touchAreas);
+    //         if (intersects.length === 0) {
+    //             continue;
+    //         }
+    //         for (const { object: { uuid } } of intersects) {
+    //             touching[touch.identifier] = touchAreas.findIndex(element => element.uuid === uuid);
+    //         }
+    //     }
+    //     for (const index of Object.values(touching)) {
+    //         dims[index].visible = true;
+    //     }
+    // };
 
-    const onMove = (event) => {
-        for (const touch of event.changedTouches) {
-            pointerBuffer.x = (touch.clientX / window.innerWidth) * 2 - 1;
-            pointerBuffer.y = -(touch.clientY / window.innerHeight) * 2 + 1;
-            raycaster.setFromCamera(pointerBuffer, camera);
-            const intersects = raycaster.intersectObjects(touchAreas);
-            if (intersects.length === 0) {
-                if (touch.identifier in touching) {
-                    dims[touching[touch.identifier]].visible = false;
-                    delete touching[touch.identifier];
-                }
-                continue;
-            }
-            for (const { object: { uuid } } of intersects) {
-                if (touch.identifier in touching) {
-                    const touchIndex = touchAreas.findIndex(element => element.uuid === uuid);
-                    if (touching[touch.identifier] !== touchIndex) {
-                        dims[touching[touch.identifier]].visible = false;
-                        touching[touch.identifier] = touchIndex;
-                        dims[touching[touch.identifier]].visible = true;
-                    }
-                }
-            }
-        }
-    };
+    // const onMove = (event) => {
+    //     for (const touch of event.changedTouches) {
+    //         pointerBuffer.x = (touch.clientX / window.innerWidth) * 2 - 1;
+    //         pointerBuffer.y = -(touch.clientY / window.innerHeight) * 2 + 1;
+    //         raycaster.setFromCamera(pointerBuffer, camera);
+    //         const intersects = raycaster.intersectObjects(touchAreas);
+    //         if (intersects.length === 0) {
+    //             if (touch.identifier in touching) {
+    //                 dims[touching[touch.identifier]].visible = false;
+    //                 delete touching[touch.identifier];
+    //             }
+    //             continue;
+    //         }
+    //         for (const { object: { uuid } } of intersects) {
+    //             if (touch.identifier in touching) {
+    //                 const touchIndex = touchAreas.findIndex(element => element.uuid === uuid);
+    //                 if (touching[touch.identifier] !== touchIndex) {
+    //                     dims[touching[touch.identifier]].visible = false;
+    //                     touching[touch.identifier] = touchIndex;
+    //                     dims[touching[touch.identifier]].visible = true;
+    //                 }
+    //             }
+    //         }
+    //     }
+    // };
 
-    const onEnd = (event) => {
-        for (const touch of event.changedTouches) {
-            if (touch.identifier in touching) {
-                dims[touching[touch.identifier]].visible = false;
-                delete touching[touch.identifier];
-            }
-        }
-    };
+    // const onEnd = (event) => {
+    //     for (const touch of event.changedTouches) {
+    //         if (touch.identifier in touching) {
+    //             dims[touching[touch.identifier]].visible = false;
+    //             delete touching[touch.identifier];
+    //         }
+    //     }
+    // };
 
     const handleTouch = (event) => {
         if (!isPlaying) {
@@ -229,30 +236,42 @@ const main = () => {
                 const touchIndex = touchAreas.findIndex(element => element.uuid === uuid);
                 const touchColumn = ["-1.5", "-0.5", "0.5", "1.5", "-1", "1"][touchIndex];
 
-                if (elapsedTime > latestLaneNote.timing - 0.1 && elapsedTime < latestLaneNote.timing + 0.1) {
+                if (elapsedTime > latestLaneNote.timing - 0.1 && elapsedTime < latestLaneNote.timing + 0.1 && latestLaneNote.column.toString() === touchColumn) {
                     const untilPerfect = Math.abs(elapsedTime - latestLaneNote.timing);
                     if (untilPerfect < 0.016) {
-                        scoreSpan.textContent = "Perfect! " + touchColumn;
+                        comboCount += 1;
+                        scoreSpan.textContent = "Perfect!";
+                        comboSpan.textContent = comboCount;
                         latestLaneNote.hasHit = true;
                     } else if (untilPerfect < 0.032) {
-                        scoreSpan.textContent = "Perfect " + touchColumn;
+                        comboCount += 1;
+                        scoreSpan.textContent = "Perfect";
+                        comboSpan.textContent = comboCount;
                         latestLaneNote.hasHit = true;
                     } else if (untilPerfect > 0.032) {
-                        scoreSpan.textContent = "Near " + touchColumn;
+                        comboCount += 1;
+                        scoreSpan.textContent = "Near";
+                        comboSpan.textContent = comboCount;
                         latestLaneNote.hasHit = true;
                     }
                 }
 
-                if (elapsedTime > latestRailNote.timing - 0.1 && elapsedTime < latestRailNote.timing + 0.1) {
+                if (elapsedTime > latestRailNote.timing - 0.1 && elapsedTime < latestRailNote.timing + 0.1 && latestRailNote.column.toString() === touchColumn) {
                     const untilPerfect = Math.abs(elapsedTime - latestRailNote.timing);
                     if (untilPerfect < 0.016) {
-                        scoreSpan.textContent = "Perfect! " + touchColumn;
+                        comboCount += 1;
+                        scoreSpan.textContent = "Perfect!";
+                        comboSpan.textContent = comboCount;
                         latestRailNote.hasHit = true;
                     } else if (untilPerfect < 0.032) {
-                        scoreSpan.textContent = "Perfect " + touchColumn;
+                        comboCount += 1;
+                        scoreSpan.textContent = "Perfect";
+                        comboSpan.textContent = comboCount;
                         latestRailNote.hasHit = true;
                     } else if (untilPerfect > 0.032) {
-                        scoreSpan.textContent = "Near " + touchColumn;
+                        comboCount += 1;
+                        scoreSpan.textContent = "Near";
+                        comboSpan.textContent = comboCount;
                         latestRailNote.hasHit = true;
                     }
                 }
@@ -261,11 +280,9 @@ const main = () => {
     };
 
     document.documentElement.addEventListener("touchstart", handleTouch);
-    document.documentElement.addEventListener("touchstart", onStart);
-    document.documentElement.addEventListener("touchmove", onMove);
-    document.documentElement.addEventListener("touchend", onEnd);
-
-    const movementThreshold = 1.5;
+    // document.documentElement.addEventListener("touchstart", onStart);
+    // document.documentElement.addEventListener("touchmove", onMove);
+    // document.documentElement.addEventListener("touchend", onEnd);
 
     const activeLaneNoteInfo = new Deque();
     const activeRailNoteInfo = new Deque();
@@ -281,7 +298,7 @@ const main = () => {
                 if (latestNote === undefined) {
                     break;
                 }
-                if (elapsedTime > latestNote.timing - movementThreshold) {
+                if (elapsedTime > latestNote.timing - context.movementThreshold) {
                     activeLaneNoteInfo.push(laneNoteInfo.pop());
                 } else {
                     break;
@@ -293,7 +310,7 @@ const main = () => {
                 if (latestNote === undefined) {
                     break;
                 }
-                if (elapsedTime > latestNote.timing - movementThreshold) {
+                if (elapsedTime > latestNote.timing - context.movementThreshold) {
                     activeRailNoteInfo.push(railNoteInfo.pop());
                 } else {
                     break;
@@ -302,13 +319,13 @@ const main = () => {
 
             for (const { timing, index, matrix } of activeLaneNoteInfo.toArray()) {
                 positionBuffer.setFromMatrixPosition(matrix);
-                positionBuffer.z = interpolate(elapsedTime, [timing - movementThreshold, timing], [-4.8, 0.0]);
+                positionBuffer.z = interpolate(elapsedTime, [timing - context.movementThreshold, timing], [-4.8, 0.0]);
                 laneNoteMesh.setMatrixAt(index, matrix.setPosition(positionBuffer));
             }
 
             for (const { timing, index, matrix } of activeRailNoteInfo.toArray()) {
                 positionBuffer.setFromMatrixPosition(matrix);
-                positionBuffer.z = interpolate(elapsedTime, [timing - movementThreshold, timing], [-4.8, 0.0]);
+                positionBuffer.z = interpolate(elapsedTime, [timing - context.movementThreshold, timing], [-4.8, 0.0]);
                 railNoteMesh.setMatrixAt(index, matrix.setPosition(positionBuffer));
             }
 
@@ -318,6 +335,11 @@ const main = () => {
                     break;
                 }
                 if (elapsedTime > latestNote.timing + 0.1) {
+                    if (!latestNote.hasHit) {
+                        comboCount = 0;
+                        scoreSpan.textContent = "Miss!";
+                        comboSpan.textContent = comboCount;
+                    }
                     activeLaneNoteInfo.removeFront();
                 } else {
                     break;
@@ -330,6 +352,11 @@ const main = () => {
                     break;
                 }
                 if (elapsedTime > latestNote.timing + 0.1) {
+                    if (!latestNote.hasHit) {
+                        comboCount = 0;
+                        scoreSpan.textContent = "Miss!";
+                        comboSpan.textContent = comboCount;
+                    }
                     activeRailNoteInfo.removeFront();
                 } else {
                     break;

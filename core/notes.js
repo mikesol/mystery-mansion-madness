@@ -34,7 +34,7 @@ export const createLaneNotes = (notes) => {
             matrix: noteMatrix,
             hasHit: false,
             index: index,
-            colomn: note.column,
+            column: note.column,
         });
     }
     return { laneNoteMesh, laneNoteInfo }

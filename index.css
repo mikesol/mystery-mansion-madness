@@ -14,7 +14,14 @@ body {
 
 #score-text {
     color: white;
-    margin-top: -2em;
-    font-size: 4em;
+    margin-top: -5em;
+    font-size: 2em;
+    font-family: sans-serif;
+}
+
+#combo-text {
+    color: white;
+    margin-top: -7em;
+    font-size: 2em;
     font-family: sans-serif;
 }
