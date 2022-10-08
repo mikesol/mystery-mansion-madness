@@ -10,7 +10,44 @@ export const LANE_NOTE_POSITION_Y = 0.0001;
 export const LANE_NOTE_POSITION_Z = -4.8;
 export const LANE_NOTE_SPACE_BETWEEN = HIGHWAY_SCALE_X_PADDING / 5;
 export const LANE_NOTE_GEOMETRY = new three.BoxGeometry(LANE_NOTE_SCALE_X, LANE_NOTE_SCALE_Y, LANE_NOTE_SCALE_Z);
-export const LANE_NOTE_MATERIAL = new three.MeshBasicMaterial({ color: 0x2ff7d6 });
+//export const LANE_NOTE_MATERIAL = new three.MeshBasicMaterial({ color: 0x2ff7d6 });
+export const LANE_NOTE_MATERIAL = new three.RawShaderMaterial({
+    uniforms: {
+        uTime: { value: 0.0 },
+
+    },
+
+    vertexShader: `
+uniform mat4 projectionMatrix;
+uniform mat4 viewMatrix;
+uniform mat4 modelMatrix;
+uniform float uTime;
+
+attribute vec3 position;
+attribute mat4 instanceMatrix;
+attribute float aTiming;
+
+void main()
+{
+    float myZ = uTime < (aTiming - 1.0) ? 100.0 : uTime > (aTiming + 1.0) ? 100.0 : ((4.8 * (uTime - (aTiming - 1.0))));
+    mat4 newMatrix;
+    newMatrix[0][0] = 1.0;
+    newMatrix[1][1] = 1.0;
+    newMatrix[2][2] = 1.0;
+    newMatrix[3][3] = 1.0;
+    newMatrix[3][2] = myZ;
+    gl_Position = projectionMatrix * viewMatrix * modelMatrix * instanceMatrix * newMatrix * vec4(position, 1.0);
+}`,
+
+    fragmentShader: `
+precision mediump float;
+
+void main()
+{
+    gl_FragColor = vec4(0.1843, 0.9686, 0.8392, 1.0);
+}
+` });
+
 export const LANE_COLUMN = {
     FAR_LEFT: -1.5,
     NEAR_LEFT: -0.5,
@@ -21,13 +58,17 @@ export const LANE_COLUMN = {
 export const createLaneNotes = (notes) => {
     const laneNoteMesh = new three.InstancedMesh(LANE_NOTE_GEOMETRY, LANE_NOTE_MATERIAL, notes.length);
     const laneNoteInfo = [];
-    for (const [index, note] of notes.reverse().entries()) {
+    const entriesReversed = [...notes.reverse().entries()];
+    const timing = new Float32Array(entriesReversed.length);
+    for (var i = 0; i < entriesReversed.length; i++) {
+        const [index, note] = entriesReversed[i];
         const noteMatrix = new three.Matrix4();
         noteMatrix.setPosition(new three.Vector3(
             (LANE_NOTE_SCALE_X + LANE_NOTE_SPACE_BETWEEN) * note.column,
             LANE_NOTE_POSITION_Y,
             LANE_NOTE_POSITION_Z,
         ));
+        timing[i] = note.timing;
         laneNoteMesh.setMatrixAt(index, noteMatrix);
         laneNoteInfo.push({
             timing: note.timing,
@@ -37,6 +78,7 @@ export const createLaneNotes = (notes) => {
             column: note.column,
         });
     }
+    LANE_NOTE_GEOMETRY.setAttribute('aTiming', new three.InstancedBufferAttribute(timing, 1))
     return { laneNoteMesh, laneNoteInfo }
 }
 
@@ -46,7 +88,43 @@ export const RAIL_NOTE_SCALE_Z = LANE_NOTE_SCALE_Z;
 export const RAIL_NOTE_POSITION_Z = LANE_NOTE_POSITION_Z;
 export const RAIL_NOTE_ROTATION_Z = 45 * Math.PI / 180;
 export const RAIL_NOTE_GEOMETRY = new three.BoxGeometry(RAIL_NOTE_SCALE_X, RAIL_NOTE_SCALE_Y, RAIL_NOTE_SCALE_Z);
-export const RAIL_NOTE_MATERIAL = new three.MeshBasicMaterial({ color: 0xfc9228 });
+// export const RAIL_NOTE_MATERIAL = new three.MeshBasicMaterial({ color: 0xfc9228 });
+export const RAIL_NOTE_MATERIAL = new three.RawShaderMaterial({
+    uniforms: {
+        uTime: { value: 0.0 },
+
+    },
+
+    vertexShader: `
+uniform mat4 projectionMatrix;
+uniform mat4 viewMatrix;
+uniform mat4 modelMatrix;
+uniform float uTime;
+
+attribute vec3 position;
+attribute mat4 instanceMatrix;
+attribute float aTiming;
+
+void main()
+{
+    float myZ = uTime < (aTiming - 1.0) ? 100.0 : uTime > (aTiming + 1.0) ? 100.0 : ((4.8 * (uTime - (aTiming - 1.0))));
+    mat4 newMatrix;
+    newMatrix[0][0] = 1.0;
+    newMatrix[1][1] = 1.0;
+    newMatrix[2][2] = 1.0;
+    newMatrix[3][3] = 1.0;
+    newMatrix[3][2] = myZ;
+    gl_Position = projectionMatrix * viewMatrix * modelMatrix * instanceMatrix * newMatrix * vec4(position, 1.0);
+}`,
+
+    fragmentShader: `
+precision mediump float;
+
+void main()
+{
+    gl_FragColor = vec4(0.9882, 0.5725, 0.1569, 1.0);
+}
+` });
 export const RAIL_COLUMN = {
     LEFT: -1,
     RIGHT: 1,
@@ -55,7 +133,10 @@ export const RAIL_COLUMN = {
 export const createRailNotes = (notes) => {
     const railNoteMesh = new three.InstancedMesh(RAIL_NOTE_GEOMETRY, RAIL_NOTE_MATERIAL, notes.length);
     const railNoteInfo = [];
-    for (const [index, note] of notes.reverse().entries()) {
+    const entriesReversed = [...notes.reverse().entries()];
+    const timing = new Float32Array(entriesReversed.length);
+    for (var i = 0; i < entriesReversed.length; i++) {
+        const [index, note] = entriesReversed[i];
         const noteMatrix = new three.Matrix4();
         noteMatrix.makeRotationZ(RAIL_NOTE_ROTATION_Z * note.column);
         noteMatrix.setPosition(
@@ -63,6 +144,7 @@ export const createRailNotes = (notes) => {
             RAIL_OFFSET + 0.0001,
             RAIL_NOTE_POSITION_Z,
         );
+        timing[i] = note.timing;
         railNoteMesh.setMatrixAt(index, noteMatrix);
         railNoteInfo.push({
             timing: note.timing,
@@ -72,5 +154,6 @@ export const createRailNotes = (notes) => {
             column: note.column,
         });
     }
+    RAIL_NOTE_GEOMETRY.setAttribute('aTiming', new three.InstancedBufferAttribute(timing, 1))
     return { railNoteMesh, railNoteInfo };
 }

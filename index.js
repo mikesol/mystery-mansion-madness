@@ -6,16 +6,16 @@ import Stats from "stats.js";
 import * as three from "three";
 import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 import { createCamera } from "./camera.js";
-import { createLaneNotes, createRailNotes, LANE_COLUMN, RAIL_COLUMN } from './core/notes.js';
+import { createLaneNotes, createRailNotes, LANE_NOTE_MATERIAL, LANE_COLUMN, RAIL_COLUMN, RAIL_NOTE_MATERIAL } from './core/notes.js';
 import { createHighway, createJudge, createRailJudge, createRails, createLaneDim, createRailDim } from './core/plane.js';
 import { createLaneTouchArea, createRailTouchArea, LANE_TOUCH_AREA_COLUMN, RAIL_TOUCH_AREA_COLUMN } from './core/touch.js';
 import Deque from "double-ended-queue";
 
 eruda.init();
 
-const interpolate = (value, r1, r2) => {
-    return (value - r1[0]) * (r2[1] - r2[0]) / (r1[1] - r1[0]) + r2[0];
-}
+// const interpolate = (value, r1, r2) => {
+//     return (value - r1[0]) * (r2[1] - r2[0]) / (r1[1] - r1[0]) + r2[0];
+// }
 
 const main = () => {
     const gui = new GUI();
@@ -292,7 +292,8 @@ const main = () => {
 
         if (isPlaying) {
             const elapsedTime = audioContext.currentTime - beginTime;
-
+            LANE_NOTE_MATERIAL.uniforms.uTime.value = elapsedTime;
+            RAIL_NOTE_MATERIAL.uniforms.uTime.value = elapsedTime;
             while (true) {
                 const latestNote = laneNoteInfo.at(-1);
                 if (latestNote === undefined) {
@@ -317,17 +318,17 @@ const main = () => {
                 }
             }
 
-            for (const { timing, index, matrix } of activeLaneNoteInfo.toArray()) {
-                positionBuffer.setFromMatrixPosition(matrix);
-                positionBuffer.z = interpolate(elapsedTime, [timing - context.movementThreshold, timing], [-4.8, 0.0]);
-                laneNoteMesh.setMatrixAt(index, matrix.setPosition(positionBuffer));
-            }
+            // for (const { timing, index, matrix } of activeLaneNoteInfo.toArray()) {
+            //     positionBuffer.setFromMatrixPosition(matrix);
+            //     positionBuffer.z = interpolate(elapsedTime, [timing - context.movementThreshold, timing], [-4.8, 0.0]);
+            //     laneNoteMesh.setMatrixAt(index, matrix.setPosition(positionBuffer));
+            // }
 
-            for (const { timing, index, matrix } of activeRailNoteInfo.toArray()) {
-                positionBuffer.setFromMatrixPosition(matrix);
-                positionBuffer.z = interpolate(elapsedTime, [timing - context.movementThreshold, timing], [-4.8, 0.0]);
-                railNoteMesh.setMatrixAt(index, matrix.setPosition(positionBuffer));
-            }
+            // for (const { timing, index, matrix } of activeRailNoteInfo.toArray()) {
+            //     positionBuffer.setFromMatrixPosition(matrix);
+            //     positionBuffer.z = interpolate(elapsedTime, [timing - context.movementThreshold, timing], [-4.8, 0.0]);
+            //     railNoteMesh.setMatrixAt(index, matrix.setPosition(positionBuffer));
+            // }
 
             while (true) {
                 const latestNote = activeLaneNoteInfo.peekFront();
@@ -363,8 +364,8 @@ const main = () => {
                 }
             }
 
-            laneNoteMesh.instanceMatrix.needsUpdate = true;
-            railNoteMesh.instanceMatrix.needsUpdate = true;
+            // laneNoteMesh.instanceMatrix.needsUpdate = true;
+            // railNoteMesh.instanceMatrix.needsUpdate = true;
         }
 
         tryResizeRendererToDisplay();
