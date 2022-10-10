@@ -58,7 +58,7 @@ export const LANE_COLUMN = {
 };
 
 export const createLaneNotes = (notes) => {
-    const entriesReversed = SPOOKY_LANES;
+    const entriesReversed = [...SPOOKY_LANES].reverse();
     const laneNoteMesh = new three.InstancedMesh(LANE_NOTE_GEOMETRY, LANE_NOTE_MATERIAL, SPOOKY_LANES.length);
     const laneNoteInfo = [];
     //const entriesReversed = [...notes.reverse().entries()];

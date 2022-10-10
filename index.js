@@ -259,11 +259,6 @@ const main = () => {
           continue;
         }
 
-        const latestRailNote = activeRailNoteInfo.peekFront();
-        if (latestLaneNote === undefined) {
-          continue;
-        }
-
         const touchIndex = touchAreas.findIndex(element => element.uuid === uuid);
         const touchColumn = ["-1.5", "-0.5", "0.5", "1.5", "-1", "1"][touchIndex];
 
@@ -286,7 +281,10 @@ const main = () => {
             latestLaneNote.hasHit = true;
           }
         }
-
+        const latestRailNote = activeRailNoteInfo.peekFront();
+        if (latestLaneNote === undefined) {
+          continue;
+        }
         if (elapsedTime > latestRailNote.timing - 0.1 && elapsedTime < latestRailNote.timing + 0.1 && latestRailNote.column.toString() === touchColumn) {
           const untilPerfect = Math.abs(elapsedTime - latestRailNote.timing);
           if (untilPerfect < 0.016) {
