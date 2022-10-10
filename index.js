@@ -52,9 +52,9 @@ const main = () => {
     RAIL_COLUMN.LEFT,
     RAIL_COLUMN.RIGHT,
   ];
-  for (let i = 1.5, j = 0; i < 31.0; i += 0.80, j = (j + 1) % 2) {
-    notes.push({ timing: i, column: lanes[j] });
-  }
+  // for (let i = 1.5, j = 0; i < 31.0; i += 0.80, j = (j + 1) % 2) {
+  //   notes.push({ timing: i, column: lanes[j] });
+  // }
   const { railNoteMesh, railNoteInfo } = createRailNotes(notes);
   scene.add(railNoteMesh);
 
