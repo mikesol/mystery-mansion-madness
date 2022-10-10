@@ -72,7 +72,7 @@ export const createLaneNotes = (notes) => {
         laneNoteMesh.setMatrixAt(index, noteMatrix);
         laneNoteInfo.push({
             timing: note.timing,
-            matrix: noteMatrix,
+            // matrix: noteMatrix,
             hasHit: false,
             index: index,
             column: note.column,
@@ -148,7 +148,7 @@ export const createRailNotes = (notes) => {
         railNoteMesh.setMatrixAt(index, noteMatrix);
         railNoteInfo.push({
             timing: note.timing,
-            matrix: noteMatrix,
+            // matrix: noteMatrix,
             hasHit: false,
             index: index,
             column: note.column,
