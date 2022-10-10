@@ -6,10 +6,11 @@ import Stats from "stats.js";
 import * as three from "three";
 import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 import { createCamera } from "./camera.js";
-import { createLaneNotes, createRailNotes, LANE_NOTE_MATERIAL, LANE_COLUMN, RAIL_COLUMN, RAIL_NOTE_MATERIAL } from './core/notes.js';
+import { createLaneNotes, createRailNotes, LANE_NOTE_MATERIAL, LANE_COLUMN, RAIL_COLUMN, RAIL_NOTE_MATERIAL, GLOBAL_START_OFFSET } from './core/notes.js';
 import { createHighway, createJudge, createRailJudge, createRails, createLaneDim, createRailDim } from './core/plane.js';
 import { createLaneTouchArea, createRailTouchArea, LANE_TOUCH_AREA_COLUMN, RAIL_TOUCH_AREA_COLUMN } from './core/touch.js';
 import Deque from "double-ended-queue";
+import halloweenUrl from './halloween.mp3'
 
 eruda.init();
 
@@ -18,367 +19,397 @@ eruda.init();
 // }
 
 const main = () => {
-    const gui = new GUI();
-    const stats = new Stats();
-    stats.showPanel(0);
-    document.body.appendChild(stats.dom);
-    const canvas = document.getElementById("joyride-canvas");
-    const renderer = new three.WebGLRenderer({ canvas, alpha: true });
-    const cssRenderer = new CSS2DRenderer();
-    cssRenderer.setSize(window.innerWidth, window.innerHeight);
-    cssRenderer.domElement.style.position = 'absolute';
-    cssRenderer.domElement.style.top = '0px';
-    document.body.appendChild(cssRenderer.domElement);
-    const camera = createCamera(canvas.clientWidth / canvas.clientHeight);
-    const raycaster = new three.Raycaster();
+  const gui = new GUI();
+  const stats = new Stats();
+  stats.showPanel(0);
+  document.body.appendChild(stats.dom);
+  const canvas = document.getElementById("joyride-canvas");
+  const renderer = new three.WebGLRenderer({ canvas, alpha: true });
+  const cssRenderer = new CSS2DRenderer();
+  cssRenderer.setSize(window.innerWidth, window.innerHeight);
+  cssRenderer.domElement.style.position = 'absolute';
+  cssRenderer.domElement.style.top = '0px';
+  document.body.appendChild(cssRenderer.domElement);
+  const camera = createCamera(canvas.clientWidth / canvas.clientHeight);
+  const raycaster = new three.Raycaster();
 
-    const scene = new three.Scene();
-    let notes = [];
-    let lanes = [
-        LANE_COLUMN.FAR_LEFT,
-        LANE_COLUMN.NEAR_LEFT,
-        LANE_COLUMN.NEAR_RIGHT,
-        LANE_COLUMN.FAR_RIGHT,
-    ];
-    for (let i = 1.5, j = 0; i < 31.0; i += 0.20, j = (j + 1) % 4) {
-        notes.push({ timing: i, column: lanes[j] });
+  const scene = new three.Scene();
+  let notes = [];
+  let lanes = [
+    LANE_COLUMN.FAR_LEFT,
+    LANE_COLUMN.NEAR_LEFT,
+    LANE_COLUMN.NEAR_RIGHT,
+    LANE_COLUMN.FAR_RIGHT,
+  ];
+  for (let i = 1.5, j = 0; i < 31.0; i += 0.20, j = (j + 1) % 4) {
+    notes.push({ timing: i, column: lanes[j] });
+  }
+  const { laneNoteMesh, laneNoteInfo } = createLaneNotes(notes);
+  scene.add(laneNoteMesh);
+
+  notes = [];
+  lanes = [
+    RAIL_COLUMN.LEFT,
+    RAIL_COLUMN.RIGHT,
+  ];
+  for (let i = 1.5, j = 0; i < 31.0; i += 0.80, j = (j + 1) % 2) {
+    notes.push({ timing: i, column: lanes[j] });
+  }
+  const { railNoteMesh, railNoteInfo } = createRailNotes(notes);
+  scene.add(railNoteMesh);
+
+  const highway = createHighway();
+  scene.add(highway);
+  const judge = createJudge();
+  scene.add(judge);
+  const rails = createRails();
+  scene.add(rails);
+  const railJudge = createRailJudge();
+  scene.add(railJudge);
+
+  const dims = [
+    createLaneDim(LANE_COLUMN.FAR_LEFT),
+    createLaneDim(LANE_COLUMN.NEAR_LEFT),
+    createLaneDim(LANE_COLUMN.NEAR_RIGHT),
+    createLaneDim(LANE_COLUMN.FAR_RIGHT),
+    createRailDim(RAIL_COLUMN.LEFT),
+    createRailDim(RAIL_COLUMN.RIGHT),
+  ];
+  for (const laneDim of dims) {
+    scene.add(laneDim);
+  }
+
+  const touchAreas = [
+    createLaneTouchArea(LANE_TOUCH_AREA_COLUMN.FAR_LEFT),
+    createLaneTouchArea(LANE_TOUCH_AREA_COLUMN.NEAR_LEFT),
+    createLaneTouchArea(LANE_TOUCH_AREA_COLUMN.NEAR_RIGHT),
+    createLaneTouchArea(LANE_TOUCH_AREA_COLUMN.FAR_RIGHT),
+    createRailTouchArea(RAIL_TOUCH_AREA_COLUMN.LEFT),
+    createRailTouchArea(RAIL_TOUCH_AREA_COLUMN.RIGHT),
+  ];
+  for (const touchArea of touchAreas) {
+    scene.add(touchArea);
+  }
+
+  const scoreSpan = document.createElement('span');
+  scoreSpan.id = "score-text";
+  scoreSpan.textContent = "...";
+  const scoreLabel = new CSS2DObject(scoreSpan);
+  scene.add(scoreLabel);
+
+  const comboSpan = document.createElement('span');
+  comboSpan.id = "combo-text";
+  comboSpan.textContent = "0";
+  const comboLabel = new CSS2DObject(comboSpan);
+  scene.add(comboLabel);
+
+  let audioContext = null;
+  let beginTime = null;
+  let isPlaying = false;
+  let comboCount = 0;
+
+  const context = {
+    movementThreshold: 1.0,
+    toggleDims: function () {
+      for (const dim of dims) {
+        dim.visible = !dim.visible;
+      }
+    },
+    toggleFullScreen: function () {
+      if (document.fullscreenElement !== null) {
+        document.exitFullscreen();
+      } else {
+        document.documentElement.requestFullscreen();
+      }
+    },
+    togglePlayBack: function () {
+      if (audioContext) {
+        audioContext.close();
+      }
+      audioContext = new AudioContext();
+      /////
+      function getData() {
+        const source = audioContext.createBufferSource();
+        const request = new XMLHttpRequest();
+
+        request.open("GET", halloweenUrl, true);
+
+        request.responseType = "arraybuffer";
+
+        request.onload = () => {
+          const audioData = request.response;
+
+          audioContext.decodeAudioData(
+            audioData,
+            (buffer) => {
+              source.buffer = buffer;
+              source.connect(audioContext.destination);
+              source.start(GLOBAL_START_OFFSET + audioContext.currentTime);
+              beginTime = audioContext.currentTime;
+              isPlaying = true;
+            },
+
+            (e) => console.error(`Error with decoding audio data: ${e.err}`)
+          );
+        };
+
+        request.send();
+      }
+      getData();
+      /////
+
+    },
+  };
+
+  gui.add(context, "toggleDims").name("Toggle Dims");
+  gui.add(context, "toggleFullScreen").name("Toggle Full Screen");
+  gui.add(context, "movementThreshold", 0.5, 1.5).name("Movement Threshold");
+  gui.add(context, "togglePlayBack").name("Toggle Playback");
+
+  const tryResizeRendererToDisplay = () => {
+    const canvas = renderer.domElement;
+    const pixelRatio = window.devicePixelRatio;
+    const width = canvas.clientWidth * pixelRatio | 0;
+    const height = canvas.clientHeight * pixelRatio | 0;
+    const needResize = canvas.width !== width || canvas.height !== height;
+    if (needResize) {
+      renderer.setSize(width, height, false);
+      cssRenderer.setSize(window.innerWidth, window.innerHeight);
+      const canvas = renderer.domElement;
+      camera.aspect = canvas.clientWidth / canvas.clientHeight;
+      camera.updateProjectionMatrix();
     }
-    const { laneNoteMesh, laneNoteInfo } = createLaneNotes(notes);
-    scene.add(laneNoteMesh);
+  }
 
-    notes = [];
-    lanes = [
-        RAIL_COLUMN.LEFT,
-        RAIL_COLUMN.RIGHT,
-    ];
-    for (let i = 1.5, j = 0; i < 31.0; i += 0.80, j = (j + 1) % 2) {
-        notes.push({ timing: i, column: lanes[j] });
-    }
-    const { railNoteMesh, railNoteInfo } = createRailNotes(notes);
-    scene.add(railNoteMesh);
+  const pointerBuffer = new three.Vector2();
+  const positionBuffer = new three.Vector3();
+  // const touching = {};
 
-    const highway = createHighway();
-    scene.add(highway);
-    const judge = createJudge();
-    scene.add(judge);
-    const rails = createRails();
-    scene.add(rails);
-    const railJudge = createRailJudge();
-    scene.add(railJudge);
+  // const onStart = (event) => {
+  //     for (const touch of event.changedTouches) {
+  //         pointerBuffer.x = (touch.clientX / window.innerWidth) * 2 - 1;
+  //         pointerBuffer.y = -(touch.clientY / window.innerHeight) * 2 + 1;
+  //         raycaster.setFromCamera(pointerBuffer, camera);
+  //         const intersects = raycaster.intersectObjects(touchAreas);
+  //         if (intersects.length === 0) {
+  //             continue;
+  //         }
+  //         for (const { object: { uuid } } of intersects) {
+  //             touching[touch.identifier] = touchAreas.findIndex(element => element.uuid === uuid);
+  //         }
+  //     }
+  //     for (const index of Object.values(touching)) {
+  //         dims[index].visible = true;
+  //     }
+  // };
 
-    const dims = [
-        createLaneDim(LANE_COLUMN.FAR_LEFT),
-        createLaneDim(LANE_COLUMN.NEAR_LEFT),
-        createLaneDim(LANE_COLUMN.NEAR_RIGHT),
-        createLaneDim(LANE_COLUMN.FAR_RIGHT),
-        createRailDim(RAIL_COLUMN.LEFT),
-        createRailDim(RAIL_COLUMN.RIGHT),
-    ];
-    for (const laneDim of dims) {
-        scene.add(laneDim);
-    }
+  // const onMove = (event) => {
+  //     for (const touch of event.changedTouches) {
+  //         pointerBuffer.x = (touch.clientX / window.innerWidth) * 2 - 1;
+  //         pointerBuffer.y = -(touch.clientY / window.innerHeight) * 2 + 1;
+  //         raycaster.setFromCamera(pointerBuffer, camera);
+  //         const intersects = raycaster.intersectObjects(touchAreas);
+  //         if (intersects.length === 0) {
+  //             if (touch.identifier in touching) {
+  //                 dims[touching[touch.identifier]].visible = false;
+  //                 delete touching[touch.identifier];
+  //             }
+  //             continue;
+  //         }
+  //         for (const { object: { uuid } } of intersects) {
+  //             if (touch.identifier in touching) {
+  //                 const touchIndex = touchAreas.findIndex(element => element.uuid === uuid);
+  //                 if (touching[touch.identifier] !== touchIndex) {
+  //                     dims[touching[touch.identifier]].visible = false;
+  //                     touching[touch.identifier] = touchIndex;
+  //                     dims[touching[touch.identifier]].visible = true;
+  //                 }
+  //             }
+  //         }
+  //     }
+  // };
 
-    const touchAreas = [
-        createLaneTouchArea(LANE_TOUCH_AREA_COLUMN.FAR_LEFT),
-        createLaneTouchArea(LANE_TOUCH_AREA_COLUMN.NEAR_LEFT),
-        createLaneTouchArea(LANE_TOUCH_AREA_COLUMN.NEAR_RIGHT),
-        createLaneTouchArea(LANE_TOUCH_AREA_COLUMN.FAR_RIGHT),
-        createRailTouchArea(RAIL_TOUCH_AREA_COLUMN.LEFT),
-        createRailTouchArea(RAIL_TOUCH_AREA_COLUMN.RIGHT),
-    ];
-    for (const touchArea of touchAreas) {
-        scene.add(touchArea);
-    }
+  // const onEnd = (event) => {
+  //     for (const touch of event.changedTouches) {
+  //         if (touch.identifier in touching) {
+  //             dims[touching[touch.identifier]].visible = false;
+  //             delete touching[touch.identifier];
+  //         }
+  //     }
+  // };
 
-    const scoreSpan = document.createElement('span');
-    scoreSpan.id = "score-text";
-    scoreSpan.textContent = "...";
-    const scoreLabel = new CSS2DObject(scoreSpan);
-    scene.add(scoreLabel);
-
-    const comboSpan = document.createElement('span');
-    comboSpan.id = "combo-text";
-    comboSpan.textContent = "0";
-    const comboLabel = new CSS2DObject(comboSpan);
-    scene.add(comboLabel);
-
-    let audioContext = null;
-    let beginTime = null;
-    let isPlaying = false;
-    let comboCount = 0;
-
-    const context = {
-        movementThreshold: 1.0,
-        toggleDims: function () {
-            for (const dim of dims) {
-                dim.visible = !dim.visible;
-            }
-        },
-        toggleFullScreen: function () {
-            if (document.fullscreenElement !== null) {
-                document.exitFullscreen();
-            } else {
-                document.documentElement.requestFullscreen();
-            }
-        },
-        togglePlayBack: function () {
-            if (audioContext === null) {
-                audioContext = new AudioContext();
-            }
-            beginTime = audioContext.currentTime;
-            isPlaying = true;
-        },
-    };
-
-    gui.add(context, "toggleDims").name("Toggle Dims");
-    gui.add(context, "toggleFullScreen").name("Toggle Full Screen");
-    gui.add(context, "movementThreshold", 0.5, 1.5).name("Movement Threshold");
-    gui.add(context, "togglePlayBack").name("Toggle Playback");
-
-    const tryResizeRendererToDisplay = () => {
-        const canvas = renderer.domElement;
-        const pixelRatio = window.devicePixelRatio;
-        const width = canvas.clientWidth * pixelRatio | 0;
-        const height = canvas.clientHeight * pixelRatio | 0;
-        const needResize = canvas.width !== width || canvas.height !== height;
-        if (needResize) {
-            renderer.setSize(width, height, false);
-            cssRenderer.setSize(window.innerWidth, window.innerHeight);
-            const canvas = renderer.domElement;
-            camera.aspect = canvas.clientWidth / canvas.clientHeight;
-            camera.updateProjectionMatrix();
-        }
+  const handleTouch = (event) => {
+    if (!isPlaying) {
+      return;
     }
 
-    const pointerBuffer = new three.Vector2();
-    const positionBuffer = new three.Vector3();
-    // const touching = {};
+    const elapsedTime = audioContext.currentTime - beginTime;
 
-    // const onStart = (event) => {
-    //     for (const touch of event.changedTouches) {
-    //         pointerBuffer.x = (touch.clientX / window.innerWidth) * 2 - 1;
-    //         pointerBuffer.y = -(touch.clientY / window.innerHeight) * 2 + 1;
-    //         raycaster.setFromCamera(pointerBuffer, camera);
-    //         const intersects = raycaster.intersectObjects(touchAreas);
-    //         if (intersects.length === 0) {
-    //             continue;
-    //         }
-    //         for (const { object: { uuid } } of intersects) {
-    //             touching[touch.identifier] = touchAreas.findIndex(element => element.uuid === uuid);
-    //         }
-    //     }
-    //     for (const index of Object.values(touching)) {
-    //         dims[index].visible = true;
-    //     }
-    // };
-
-    // const onMove = (event) => {
-    //     for (const touch of event.changedTouches) {
-    //         pointerBuffer.x = (touch.clientX / window.innerWidth) * 2 - 1;
-    //         pointerBuffer.y = -(touch.clientY / window.innerHeight) * 2 + 1;
-    //         raycaster.setFromCamera(pointerBuffer, camera);
-    //         const intersects = raycaster.intersectObjects(touchAreas);
-    //         if (intersects.length === 0) {
-    //             if (touch.identifier in touching) {
-    //                 dims[touching[touch.identifier]].visible = false;
-    //                 delete touching[touch.identifier];
-    //             }
-    //             continue;
-    //         }
-    //         for (const { object: { uuid } } of intersects) {
-    //             if (touch.identifier in touching) {
-    //                 const touchIndex = touchAreas.findIndex(element => element.uuid === uuid);
-    //                 if (touching[touch.identifier] !== touchIndex) {
-    //                     dims[touching[touch.identifier]].visible = false;
-    //                     touching[touch.identifier] = touchIndex;
-    //                     dims[touching[touch.identifier]].visible = true;
-    //                 }
-    //             }
-    //         }
-    //     }
-    // };
-
-    // const onEnd = (event) => {
-    //     for (const touch of event.changedTouches) {
-    //         if (touch.identifier in touching) {
-    //             dims[touching[touch.identifier]].visible = false;
-    //             delete touching[touch.identifier];
-    //         }
-    //     }
-    // };
-
-    const handleTouch = (event) => {
-        if (!isPlaying) {
-            return;
-        }
-
-        const elapsedTime = audioContext.currentTime - beginTime;
-
-        for (const touch of event.changedTouches) {
-            pointerBuffer.x = (touch.clientX / window.innerWidth) * 2 - 1;
-            pointerBuffer.y = -(touch.clientY / window.innerHeight) * 2 + 1;
-            raycaster.setFromCamera(pointerBuffer, camera);
-            const intersects = raycaster.intersectObjects(touchAreas);
-            if (intersects.length === 0) {
-                continue;
-            }
-            for (const { object: { uuid } } of intersects) {
-                const latestLaneNote = activeLaneNoteInfo.peekFront();
-                if (latestLaneNote === undefined) {
-                    continue;
-                }
-
-                const latestRailNote = activeRailNoteInfo.peekFront();
-                if (latestLaneNote === undefined) {
-                    continue;
-                }
-
-                const touchIndex = touchAreas.findIndex(element => element.uuid === uuid);
-                const touchColumn = ["-1.5", "-0.5", "0.5", "1.5", "-1", "1"][touchIndex];
-
-                if (elapsedTime > latestLaneNote.timing - 0.1 && elapsedTime < latestLaneNote.timing + 0.1 && latestLaneNote.column.toString() === touchColumn) {
-                    const untilPerfect = Math.abs(elapsedTime - latestLaneNote.timing);
-                    if (untilPerfect < 0.016) {
-                        comboCount += 1;
-                        scoreSpan.textContent = "Perfect!";
-                        comboSpan.textContent = comboCount;
-                        latestLaneNote.hasHit = true;
-                    } else if (untilPerfect < 0.032) {
-                        comboCount += 1;
-                        scoreSpan.textContent = "Perfect";
-                        comboSpan.textContent = comboCount;
-                        latestLaneNote.hasHit = true;
-                    } else if (untilPerfect > 0.032) {
-                        comboCount += 1;
-                        scoreSpan.textContent = "Near";
-                        comboSpan.textContent = comboCount;
-                        latestLaneNote.hasHit = true;
-                    }
-                }
-
-                if (elapsedTime > latestRailNote.timing - 0.1 && elapsedTime < latestRailNote.timing + 0.1 && latestRailNote.column.toString() === touchColumn) {
-                    const untilPerfect = Math.abs(elapsedTime - latestRailNote.timing);
-                    if (untilPerfect < 0.016) {
-                        comboCount += 1;
-                        scoreSpan.textContent = "Perfect!";
-                        comboSpan.textContent = comboCount;
-                        latestRailNote.hasHit = true;
-                    } else if (untilPerfect < 0.032) {
-                        comboCount += 1;
-                        scoreSpan.textContent = "Perfect";
-                        comboSpan.textContent = comboCount;
-                        latestRailNote.hasHit = true;
-                    } else if (untilPerfect > 0.032) {
-                        comboCount += 1;
-                        scoreSpan.textContent = "Near";
-                        comboSpan.textContent = comboCount;
-                        latestRailNote.hasHit = true;
-                    }
-                }
-            }
-        }
-    };
-
-    document.documentElement.addEventListener("touchstart", handleTouch);
-    // document.documentElement.addEventListener("touchstart", onStart);
-    // document.documentElement.addEventListener("touchmove", onMove);
-    // document.documentElement.addEventListener("touchend", onEnd);
-
-    const activeLaneNoteInfo = new Deque();
-    const activeRailNoteInfo = new Deque();
-
-    const renderLoop = () => {
-        raycaster.setFromCamera(pointerBuffer, camera);
-
-        if (isPlaying) {
-            const elapsedTime = audioContext.currentTime - beginTime;
-            LANE_NOTE_MATERIAL.uniforms.uTime.value = elapsedTime;
-            RAIL_NOTE_MATERIAL.uniforms.uTime.value = elapsedTime;
-            while (true) {
-                const latestNote = laneNoteInfo.at(-1);
-                if (latestNote === undefined) {
-                    break;
-                }
-                if (elapsedTime > latestNote.timing - context.movementThreshold) {
-                    activeLaneNoteInfo.push(laneNoteInfo.pop());
-                } else {
-                    break;
-                }
-            }
-
-            while (true) {
-                const latestNote = railNoteInfo.at(-1);
-                if (latestNote === undefined) {
-                    break;
-                }
-                if (elapsedTime > latestNote.timing - context.movementThreshold) {
-                    activeRailNoteInfo.push(railNoteInfo.pop());
-                } else {
-                    break;
-                }
-            }
-
-            // for (const { timing, index, matrix } of activeLaneNoteInfo.toArray()) {
-            //     positionBuffer.setFromMatrixPosition(matrix);
-            //     positionBuffer.z = interpolate(elapsedTime, [timing - context.movementThreshold, timing], [-4.8, 0.0]);
-            //     laneNoteMesh.setMatrixAt(index, matrix.setPosition(positionBuffer));
-            // }
-
-            // for (const { timing, index, matrix } of activeRailNoteInfo.toArray()) {
-            //     positionBuffer.setFromMatrixPosition(matrix);
-            //     positionBuffer.z = interpolate(elapsedTime, [timing - context.movementThreshold, timing], [-4.8, 0.0]);
-            //     railNoteMesh.setMatrixAt(index, matrix.setPosition(positionBuffer));
-            // }
-
-            while (true) {
-                const latestNote = activeLaneNoteInfo.peekFront();
-                if (latestNote === undefined) {
-                    break;
-                }
-                if (elapsedTime > latestNote.timing + 0.1) {
-                    if (!latestNote.hasHit) {
-                        comboCount = 0;
-                        scoreSpan.textContent = "Miss!";
-                        comboSpan.textContent = comboCount;
-                    }
-                    activeLaneNoteInfo.removeFront();
-                } else {
-                    break;
-                }
-            }
-
-            while (true) {
-                const latestNote = activeRailNoteInfo.peekFront();
-                if (latestNote === undefined) {
-                    break;
-                }
-                if (elapsedTime > latestNote.timing + 0.1) {
-                    if (!latestNote.hasHit) {
-                        comboCount = 0;
-                        scoreSpan.textContent = "Miss!";
-                        comboSpan.textContent = comboCount;
-                    }
-                    activeRailNoteInfo.removeFront();
-                } else {
-                    break;
-                }
-            }
-
-            // laneNoteMesh.instanceMatrix.needsUpdate = true;
-            // railNoteMesh.instanceMatrix.needsUpdate = true;
+    for (const touch of event.changedTouches) {
+      pointerBuffer.x = (touch.clientX / window.innerWidth) * 2 - 1;
+      pointerBuffer.y = -(touch.clientY / window.innerHeight) * 2 + 1;
+      raycaster.setFromCamera(pointerBuffer, camera);
+      const intersects = raycaster.intersectObjects(touchAreas);
+      if (intersects.length === 0) {
+        continue;
+      }
+      for (const { object: { uuid } } of intersects) {
+        const latestLaneNote = activeLaneNoteInfo.peekFront();
+        if (latestLaneNote === undefined) {
+          continue;
         }
 
-        tryResizeRendererToDisplay();
+        const latestRailNote = activeRailNoteInfo.peekFront();
+        if (latestLaneNote === undefined) {
+          continue;
+        }
 
-        stats.begin();
-        renderer.render(scene, camera);
-        cssRenderer.render(scene, camera);
-        stats.end();
+        const touchIndex = touchAreas.findIndex(element => element.uuid === uuid);
+        const touchColumn = ["-1.5", "-0.5", "0.5", "1.5", "-1", "1"][touchIndex];
 
-        requestAnimationFrame(renderLoop);
-    };
+        if (elapsedTime > latestLaneNote.timing - 0.1 && elapsedTime < latestLaneNote.timing + 0.1 && latestLaneNote.column.toString() === touchColumn) {
+          const untilPerfect = Math.abs(elapsedTime - latestLaneNote.timing);
+          if (untilPerfect < 0.016) {
+            comboCount += 1;
+            scoreSpan.textContent = "Perfect!";
+            comboSpan.textContent = comboCount;
+            latestLaneNote.hasHit = true;
+          } else if (untilPerfect < 0.032) {
+            comboCount += 1;
+            scoreSpan.textContent = "Perfect";
+            comboSpan.textContent = comboCount;
+            latestLaneNote.hasHit = true;
+          } else if (untilPerfect > 0.032) {
+            comboCount += 1;
+            scoreSpan.textContent = "Near";
+            comboSpan.textContent = comboCount;
+            latestLaneNote.hasHit = true;
+          }
+        }
+
+        if (elapsedTime > latestRailNote.timing - 0.1 && elapsedTime < latestRailNote.timing + 0.1 && latestRailNote.column.toString() === touchColumn) {
+          const untilPerfect = Math.abs(elapsedTime - latestRailNote.timing);
+          if (untilPerfect < 0.016) {
+            comboCount += 1;
+            scoreSpan.textContent = "Perfect!";
+            comboSpan.textContent = comboCount;
+            latestRailNote.hasHit = true;
+          } else if (untilPerfect < 0.032) {
+            comboCount += 1;
+            scoreSpan.textContent = "Perfect";
+            comboSpan.textContent = comboCount;
+            latestRailNote.hasHit = true;
+          } else if (untilPerfect > 0.032) {
+            comboCount += 1;
+            scoreSpan.textContent = "Near";
+            comboSpan.textContent = comboCount;
+            latestRailNote.hasHit = true;
+          }
+        }
+      }
+    }
+  };
+
+  document.documentElement.addEventListener("touchstart", handleTouch);
+  // document.documentElement.addEventListener("touchstart", onStart);
+  // document.documentElement.addEventListener("touchmove", onMove);
+  // document.documentElement.addEventListener("touchend", onEnd);
+
+  const activeLaneNoteInfo = new Deque();
+  const activeRailNoteInfo = new Deque();
+
+  const renderLoop = () => {
+    raycaster.setFromCamera(pointerBuffer, camera);
+
+    if (isPlaying) {
+      const elapsedTime = audioContext.currentTime - beginTime;
+      LANE_NOTE_MATERIAL.uniforms.uTime.value = elapsedTime;
+      RAIL_NOTE_MATERIAL.uniforms.uTime.value = elapsedTime;
+      while (true) {
+        const latestNote = laneNoteInfo.at(-1);
+        if (latestNote === undefined) {
+          break;
+        }
+        if (elapsedTime > latestNote.timing - context.movementThreshold) {
+          activeLaneNoteInfo.push(laneNoteInfo.pop());
+        } else {
+          break;
+        }
+      }
+
+      while (true) {
+        const latestNote = railNoteInfo.at(-1);
+        if (latestNote === undefined) {
+          break;
+        }
+        if (elapsedTime > latestNote.timing - context.movementThreshold) {
+          activeRailNoteInfo.push(railNoteInfo.pop());
+        } else {
+          break;
+        }
+      }
+
+      // for (const { timing, index, matrix } of activeLaneNoteInfo.toArray()) {
+      //     positionBuffer.setFromMatrixPosition(matrix);
+      //     positionBuffer.z = interpolate(elapsedTime, [timing - context.movementThreshold, timing], [-4.8, 0.0]);
+      //     laneNoteMesh.setMatrixAt(index, matrix.setPosition(positionBuffer));
+      // }
+
+      // for (const { timing, index, matrix } of activeRailNoteInfo.toArray()) {
+      //     positionBuffer.setFromMatrixPosition(matrix);
+      //     positionBuffer.z = interpolate(elapsedTime, [timing - context.movementThreshold, timing], [-4.8, 0.0]);
+      //     railNoteMesh.setMatrixAt(index, matrix.setPosition(positionBuffer));
+      // }
+
+      while (true) {
+        const latestNote = activeLaneNoteInfo.peekFront();
+        if (latestNote === undefined) {
+          break;
+        }
+        if (elapsedTime > latestNote.timing + 0.1) {
+          if (!latestNote.hasHit) {
+            comboCount = 0;
+            scoreSpan.textContent = "Miss!";
+            comboSpan.textContent = comboCount;
+          }
+          activeLaneNoteInfo.removeFront();
+        } else {
+          break;
+        }
+      }
+
+      while (true) {
+        const latestNote = activeRailNoteInfo.peekFront();
+        if (latestNote === undefined) {
+          break;
+        }
+        if (elapsedTime > latestNote.timing + 0.1) {
+          if (!latestNote.hasHit) {
+            comboCount = 0;
+            scoreSpan.textContent = "Miss!";
+            comboSpan.textContent = comboCount;
+          }
+          activeRailNoteInfo.removeFront();
+        } else {
+          break;
+        }
+      }
+
+      // laneNoteMesh.instanceMatrix.needsUpdate = true;
+      // railNoteMesh.instanceMatrix.needsUpdate = true;
+    }
+
+    tryResizeRendererToDisplay();
+
+    stats.begin();
+    renderer.render(scene, camera);
+    cssRenderer.render(scene, camera);
+    stats.end();
 
     requestAnimationFrame(renderLoop);
+  };
+
+  requestAnimationFrame(renderLoop);
 }
 
 main();

@@ -1,8 +1,10 @@
 "use strict";
 
 import * as three from "three";
+import { SPOOKY_LANES } from "./halloween0.js";
 import { HIGHWAY_SCALE_X, HIGHWAY_SCALE_X_BASE, HIGHWAY_SCALE_X_PADDING, HIGHWAY_SCALE_Y, RAIL_OFFSET, RAIL_SCALE_X_BASE, RAIL_SCALE_Y } from "./plane.js";
 
+export const GLOBAL_START_OFFSET = 1.5;
 export const LANE_NOTE_SCALE_X = HIGHWAY_SCALE_X_BASE / 4;
 export const LANE_NOTE_SCALE_Y = HIGHWAY_SCALE_Y;
 export const LANE_NOTE_SCALE_Z = 0.20;
@@ -56,25 +58,28 @@ export const LANE_COLUMN = {
 };
 
 export const createLaneNotes = (notes) => {
-    const laneNoteMesh = new three.InstancedMesh(LANE_NOTE_GEOMETRY, LANE_NOTE_MATERIAL, notes.length);
+    const entriesReversed = SPOOKY_LANES;
+    const laneNoteMesh = new three.InstancedMesh(LANE_NOTE_GEOMETRY, LANE_NOTE_MATERIAL, SPOOKY_LANES.length);
     const laneNoteInfo = [];
-    const entriesReversed = [...notes.reverse().entries()];
+    //const entriesReversed = [...notes.reverse().entries()];
     const timing = new Float32Array(entriesReversed.length);
     for (var i = 0; i < entriesReversed.length; i++) {
-        const [index, note] = entriesReversed[i];
+        //const [index, note] = entriesReversed[i];
+        const note = entriesReversed[i];
         const noteMatrix = new three.Matrix4();
         noteMatrix.setPosition(new three.Vector3(
             (LANE_NOTE_SCALE_X + LANE_NOTE_SPACE_BETWEEN) * note.column,
             LANE_NOTE_POSITION_Y,
             LANE_NOTE_POSITION_Z,
         ));
-        timing[i] = note.timing;
-        laneNoteMesh.setMatrixAt(index, noteMatrix);
+        timing[i] = note.timing + GLOBAL_START_OFFSET;
+        // laneNoteMesh.setMatrixAt(index, noteMatrix);
+        laneNoteMesh.setMatrixAt(i, noteMatrix);
         laneNoteInfo.push({
-            timing: note.timing,
+            timing: note.timing + GLOBAL_START_OFFSET,
             // matrix: noteMatrix,
             hasHit: false,
-            index: index,
+            // index: index,
             column: note.column,
         });
     }
@@ -144,13 +149,13 @@ export const createRailNotes = (notes) => {
             RAIL_OFFSET + 0.0001,
             RAIL_NOTE_POSITION_Z,
         );
-        timing[i] = note.timing;
+        timing[i] = note.timing + GLOBAL_START_OFFSET;
         railNoteMesh.setMatrixAt(index, noteMatrix);
         railNoteInfo.push({
-            timing: note.timing,
+            timing: note.timing + GLOBAL_START_OFFSET,
             // matrix: noteMatrix,
             hasHit: false,
-            index: index,
+            // index: index,
             column: note.column,
         });
     }
