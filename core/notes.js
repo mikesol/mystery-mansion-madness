@@ -1,7 +1,6 @@
 "use strict";
 
 import * as three from "three";
-import { SPOOKY_LANES } from "./halloween0.js";
 import { HIGHWAY_SCALE_X, HIGHWAY_SCALE_X_BASE, HIGHWAY_SCALE_X_PADDING, HIGHWAY_SCALE_Y, RAIL_OFFSET, RAIL_SCALE_X_BASE, RAIL_SCALE_Y } from "./plane.js";
 
 export const GLOBAL_START_OFFSET = 1.5;
@@ -11,9 +10,8 @@ export const LANE_NOTE_SCALE_Z = 0.20;
 export const LANE_NOTE_POSITION_Y = 0.0001;
 export const LANE_NOTE_POSITION_Z = -4.8;
 export const LANE_NOTE_SPACE_BETWEEN = HIGHWAY_SCALE_X_PADDING / 5;
-export const LANE_NOTE_GEOMETRY = new three.BoxGeometry(LANE_NOTE_SCALE_X, LANE_NOTE_SCALE_Y, LANE_NOTE_SCALE_Z);
-//export const LANE_NOTE_MATERIAL = new three.MeshBasicMaterial({ color: 0x2ff7d6 });
-export const LANE_NOTE_MATERIAL = new three.RawShaderMaterial({
+const LANE_NOTE_GEOMETRY = () => new three.BoxGeometry(LANE_NOTE_SCALE_X, LANE_NOTE_SCALE_Y, LANE_NOTE_SCALE_Z);
+const LANE_NOTE_MATERIAL = () => new three.RawShaderMaterial({
     uniforms: {
         uTime: { value: 0.0 },
 
@@ -58,8 +56,10 @@ export const LANE_COLUMN = {
 };
 
 export const createLaneNotes = (notes) => {
-    const entriesReversed = [...SPOOKY_LANES].reverse();
-    const laneNoteMesh = new three.InstancedMesh(LANE_NOTE_GEOMETRY, LANE_NOTE_MATERIAL, SPOOKY_LANES.length);
+    const entriesReversed = [...notes].reverse();
+    const geometry = LANE_NOTE_GEOMETRY();
+    const material = LANE_NOTE_MATERIAL();
+    const laneNoteMesh = new three.InstancedMesh(geometry, material, notes.length);
     const laneNoteInfo = [];
     //const entriesReversed = [...notes.reverse().entries()];
     const timing = new Float32Array(entriesReversed.length);
@@ -83,7 +83,7 @@ export const createLaneNotes = (notes) => {
             column: note.column,
         });
     }
-    LANE_NOTE_GEOMETRY.setAttribute('aTiming', new three.InstancedBufferAttribute(timing, 1))
+    geometry.setAttribute('aTiming', new three.InstancedBufferAttribute(timing, 1))
     return { laneNoteMesh, laneNoteInfo }
 }
 
@@ -92,12 +92,10 @@ export const RAIL_NOTE_SCALE_Y = RAIL_SCALE_Y;
 export const RAIL_NOTE_SCALE_Z = LANE_NOTE_SCALE_Z;
 export const RAIL_NOTE_POSITION_Z = LANE_NOTE_POSITION_Z;
 export const RAIL_NOTE_ROTATION_Z = 45 * Math.PI / 180;
-export const RAIL_NOTE_GEOMETRY = new three.BoxGeometry(RAIL_NOTE_SCALE_X, RAIL_NOTE_SCALE_Y, RAIL_NOTE_SCALE_Z);
-// export const RAIL_NOTE_MATERIAL = new three.MeshBasicMaterial({ color: 0xfc9228 });
-export const RAIL_NOTE_MATERIAL = new three.RawShaderMaterial({
+const RAIL_NOTE_GEOMETRY = () => new three.BoxGeometry(RAIL_NOTE_SCALE_X, RAIL_NOTE_SCALE_Y, RAIL_NOTE_SCALE_Z);
+const RAIL_NOTE_MATERIAL = () => new three.RawShaderMaterial({
     uniforms: {
         uTime: { value: 0.0 },
-
     },
 
     vertexShader: `
@@ -136,7 +134,9 @@ export const RAIL_COLUMN = {
 };
 
 export const createRailNotes = (notes) => {
-    const railNoteMesh = new three.InstancedMesh(RAIL_NOTE_GEOMETRY, RAIL_NOTE_MATERIAL, notes.length);
+    const geometry = RAIL_NOTE_GEOMETRY();
+    const material = RAIL_NOTE_MATERIAL();
+    const railNoteMesh = new three.InstancedMesh(geometry, material, notes.length);
     const railNoteInfo = [];
     const entriesReversed = [...notes.reverse().entries()];
     const timing = new Float32Array(entriesReversed.length);
@@ -159,6 +159,6 @@ export const createRailNotes = (notes) => {
             column: note.column,
         });
     }
-    RAIL_NOTE_GEOMETRY.setAttribute('aTiming', new three.InstancedBufferAttribute(timing, 1))
+    geometry.setAttribute('aTiming', new three.InstancedBufferAttribute(timing, 1))
     return { railNoteMesh, railNoteInfo };
 }

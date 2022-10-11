@@ -6,7 +6,8 @@ import Stats from "stats.js";
 import * as three from "three";
 import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 import { createCamera } from "./camera.js";
-import { createLaneNotes, createRailNotes, LANE_NOTE_MATERIAL, LANE_COLUMN, RAIL_COLUMN, RAIL_NOTE_MATERIAL, GLOBAL_START_OFFSET } from './core/notes.js';
+import { SPOOKY_LANES } from "./core/halloween0.js";
+import { createLaneNotes, createRailNotes, LANE_COLUMN, RAIL_COLUMN, GLOBAL_START_OFFSET } from './core/notes.js';
 import { createHighway, createJudge, createRailJudge, createRails, createLaneDim, createRailDim } from './core/plane.js';
 import { createLaneTouchArea, createRailTouchArea, LANE_TOUCH_AREA_COLUMN, RAIL_TOUCH_AREA_COLUMN } from './core/touch.js';
 import Deque from "double-ended-queue";
@@ -34,38 +35,32 @@ const main = () => {
   const raycaster = new three.Raycaster();
 
   const scene = new three.Scene();
-  let notes = [];
-  let lanes = [
-    LANE_COLUMN.FAR_LEFT,
-    LANE_COLUMN.NEAR_LEFT,
-    LANE_COLUMN.NEAR_RIGHT,
-    LANE_COLUMN.FAR_RIGHT,
-  ];
-  for (let i = 1.5, j = 0; i < 31.0; i += 0.20, j = (j + 1) % 4) {
-    notes.push({ timing: i, column: lanes[j] });
-  }
-  const { laneNoteMesh, laneNoteInfo } = createLaneNotes(notes);
-  scene.add(laneNoteMesh);
 
-  notes = [];
-  lanes = [
+  const { laneNoteMesh, laneNoteInfo } = createLaneNotes(SPOOKY_LANES);
+
+  const laneGroup = new three.Group();
+
+  laneGroup.add(laneNoteMesh);
+
+  const notes = [];
+  const lanes = [
     RAIL_COLUMN.LEFT,
     RAIL_COLUMN.RIGHT,
   ];
-  // for (let i = 1.5, j = 0; i < 31.0; i += 0.80, j = (j + 1) % 2) {
-  //   notes.push({ timing: i, column: lanes[j] });
-  // }
+  for (let i = 1.5, j = 0; i < 31.0; i += 0.80, j = (j + 1) % 2) {
+    notes.push({ timing: i, column: lanes[j] });
+  }
   const { railNoteMesh, railNoteInfo } = createRailNotes(notes);
-  scene.add(railNoteMesh);
+  laneGroup.add(railNoteMesh);
 
   const highway = createHighway();
-  scene.add(highway);
+  laneGroup.add(highway);
   const judge = createJudge();
-  scene.add(judge);
+  laneGroup.add(judge);
   const rails = createRails();
-  scene.add(rails);
+  laneGroup.add(rails);
   const railJudge = createRailJudge();
-  scene.add(railJudge);
+  laneGroup.add(railJudge);
 
   const dims = [
     createLaneDim(LANE_COLUMN.FAR_LEFT),
@@ -76,9 +71,9 @@ const main = () => {
     createRailDim(RAIL_COLUMN.RIGHT),
   ];
   for (const laneDim of dims) {
-    scene.add(laneDim);
+    laneGroup.add(laneDim);
   }
-
+  scene.add(laneGroup);
   const touchAreas = [
     createLaneTouchArea(LANE_TOUCH_AREA_COLUMN.FAR_LEFT),
     createLaneTouchArea(LANE_TOUCH_AREA_COLUMN.NEAR_LEFT),
@@ -321,8 +316,8 @@ const main = () => {
 
     if (isPlaying) {
       const elapsedTime = audioContext.currentTime - beginTime;
-      LANE_NOTE_MATERIAL.uniforms.uTime.value = elapsedTime;
-      RAIL_NOTE_MATERIAL.uniforms.uTime.value = elapsedTime;
+      laneNoteMesh.material.uniforms.uTime.value = elapsedTime;
+      railNoteMesh.material.uniforms.uTime.value = elapsedTime;
       while (true) {
         const latestNote = laneNoteInfo.at(-1);
         if (latestNote === undefined) {
