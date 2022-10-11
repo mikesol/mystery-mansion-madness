@@ -4,14 +4,35 @@ import GUI from "lil-gui";
 import * as eruda from "eruda";
 import Stats from "stats.js";
 import * as three from "three";
-import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+import {
+  CSS2DRenderer,
+  CSS2DObject,
+} from "three/addons/renderers/CSS2DRenderer.js";
 import { createCamera } from "./camera.js";
 import { SPOOKY_LANES } from "./core/halloween0.js";
-import { createLaneNotes, createRailNotes, LANE_COLUMN, RAIL_COLUMN, GLOBAL_START_OFFSET } from './core/notes.js';
-import { createHighway, createJudge, createRailJudge, createRails, createLaneDim, createRailDim } from './core/plane.js';
-import { createLaneTouchArea, createRailTouchArea, LANE_TOUCH_AREA_COLUMN, RAIL_TOUCH_AREA_COLUMN } from './core/touch.js';
+import {
+  createLaneNotes,
+  createRailNotes,
+  LANE_COLUMN,
+  RAIL_COLUMN,
+  GLOBAL_START_OFFSET,
+} from "./core/notes.js";
+import {
+  createHighway,
+  createJudge,
+  createRailJudge,
+  createRails,
+  createLaneDim,
+  createRailDim,
+} from "./core/plane.js";
+import {
+  createLaneTouchArea,
+  createRailTouchArea,
+  LANE_TOUCH_AREA_COLUMN,
+  RAIL_TOUCH_AREA_COLUMN,
+} from "./core/touch.js";
 import Deque from "double-ended-queue";
-import halloweenUrl from './halloween.mp3'
+import halloweenUrl from "./halloween.mp3";
 
 eruda.init();
 
@@ -19,23 +40,7 @@ eruda.init();
 //     return (value - r1[0]) * (r2[1] - r2[0]) / (r1[1] - r1[0]) + r2[0];
 // }
 
-const main = () => {
-  const gui = new GUI();
-  const stats = new Stats();
-  stats.showPanel(0);
-  document.body.appendChild(stats.dom);
-  const canvas = document.getElementById("joyride-canvas");
-  const renderer = new three.WebGLRenderer({ canvas, alpha: true });
-  const cssRenderer = new CSS2DRenderer();
-  cssRenderer.setSize(window.innerWidth, window.innerHeight);
-  cssRenderer.domElement.style.position = 'absolute';
-  cssRenderer.domElement.style.top = '0px';
-  document.body.appendChild(cssRenderer.domElement);
-  const camera = createCamera(canvas.clientWidth / canvas.clientHeight);
-  const raycaster = new three.Raycaster();
-
-  const scene = new three.Scene();
-
+const makeGroup = ({ scene, renderLeftRail, renderRightRail }) => {
   const { laneNoteMesh, laneNoteInfo } = createLaneNotes(SPOOKY_LANES);
 
   const laneGroup = new three.Group();
@@ -43,23 +48,20 @@ const main = () => {
   laneGroup.add(laneNoteMesh);
 
   const notes = [];
-  const lanes = [
-    RAIL_COLUMN.LEFT,
-    RAIL_COLUMN.RIGHT,
-  ];
-  for (let i = 1.5, j = 0; i < 31.0; i += 0.80, j = (j + 1) % 2) {
+  const lanes = [RAIL_COLUMN.LEFT, RAIL_COLUMN.RIGHT];
+  for (let i = 1.5, j = 0; i < 31.0; i += 0.8, j = (j + 1) % 2) {
     notes.push({ timing: i, column: lanes[j] });
   }
-  const { railNoteMesh, railNoteInfo } = createRailNotes(notes);
+  const { railNoteMesh, railNoteInfo } = createRailNotes({notes, renderLeftRail, renderRightRail});
   laneGroup.add(railNoteMesh);
 
   const highway = createHighway();
   laneGroup.add(highway);
   const judge = createJudge();
   laneGroup.add(judge);
-  const rails = createRails();
+  const rails = createRails({renderLeftRail, renderRightRail});
   laneGroup.add(rails);
-  const railJudge = createRailJudge();
+  const railJudge = createRailJudge({renderLeftRail, renderRightRail});
   laneGroup.add(railJudge);
 
   const dims = [
@@ -74,6 +76,32 @@ const main = () => {
     laneGroup.add(laneDim);
   }
   scene.add(laneGroup);
+  return { laneNoteMesh, laneNoteInfo, railNoteMesh, railNoteInfo };
+};
+
+const main = () => {
+  const gui = new GUI();
+  const stats = new Stats();
+  stats.showPanel(0);
+  document.body.appendChild(stats.dom);
+  const canvas = document.getElementById("joyride-canvas");
+  const renderer = new three.WebGLRenderer({ canvas, alpha: true });
+  const cssRenderer = new CSS2DRenderer();
+  cssRenderer.setSize(window.innerWidth, window.innerHeight);
+  cssRenderer.domElement.style.position = "absolute";
+  cssRenderer.domElement.style.top = "0px";
+  document.body.appendChild(cssRenderer.domElement);
+  const camera = createCamera(canvas.clientWidth / canvas.clientHeight);
+  const raycaster = new three.Raycaster();
+
+  const scene = new three.Scene();
+
+  const { laneNoteMesh, laneNoteInfo, railNoteMesh, railNoteInfo } = makeGroup({
+    scene,
+    renderLeftRail: true,
+    renderRightRail: true,
+  });
+
   const touchAreas = [
     createLaneTouchArea(LANE_TOUCH_AREA_COLUMN.FAR_LEFT),
     createLaneTouchArea(LANE_TOUCH_AREA_COLUMN.NEAR_LEFT),
@@ -86,13 +114,13 @@ const main = () => {
     scene.add(touchArea);
   }
 
-  const scoreSpan = document.createElement('span');
+  const scoreSpan = document.createElement("span");
   scoreSpan.id = "score-text";
   scoreSpan.textContent = "...";
   const scoreLabel = new CSS2DObject(scoreSpan);
   scene.add(scoreLabel);
 
-  const comboSpan = document.createElement('span');
+  const comboSpan = document.createElement("span");
   comboSpan.id = "combo-text";
   comboSpan.textContent = "0";
   const comboLabel = new CSS2DObject(comboSpan);
@@ -152,7 +180,6 @@ const main = () => {
       }
       getData();
       /////
-
     },
   };
 
@@ -164,8 +191,8 @@ const main = () => {
   const tryResizeRendererToDisplay = () => {
     const canvas = renderer.domElement;
     const pixelRatio = window.devicePixelRatio;
-    const width = canvas.clientWidth * pixelRatio | 0;
-    const height = canvas.clientHeight * pixelRatio | 0;
+    const width = (canvas.clientWidth * pixelRatio) | 0;
+    const height = (canvas.clientHeight * pixelRatio) | 0;
     const needResize = canvas.width !== width || canvas.height !== height;
     if (needResize) {
       renderer.setSize(width, height, false);
@@ -174,64 +201,9 @@ const main = () => {
       camera.aspect = canvas.clientWidth / canvas.clientHeight;
       camera.updateProjectionMatrix();
     }
-  }
+  };
 
   const pointerBuffer = new three.Vector2();
-  const positionBuffer = new three.Vector3();
-  // const touching = {};
-
-  // const onStart = (event) => {
-  //     for (const touch of event.changedTouches) {
-  //         pointerBuffer.x = (touch.clientX / window.innerWidth) * 2 - 1;
-  //         pointerBuffer.y = -(touch.clientY / window.innerHeight) * 2 + 1;
-  //         raycaster.setFromCamera(pointerBuffer, camera);
-  //         const intersects = raycaster.intersectObjects(touchAreas);
-  //         if (intersects.length === 0) {
-  //             continue;
-  //         }
-  //         for (const { object: { uuid } } of intersects) {
-  //             touching[touch.identifier] = touchAreas.findIndex(element => element.uuid === uuid);
-  //         }
-  //     }
-  //     for (const index of Object.values(touching)) {
-  //         dims[index].visible = true;
-  //     }
-  // };
-
-  // const onMove = (event) => {
-  //     for (const touch of event.changedTouches) {
-  //         pointerBuffer.x = (touch.clientX / window.innerWidth) * 2 - 1;
-  //         pointerBuffer.y = -(touch.clientY / window.innerHeight) * 2 + 1;
-  //         raycaster.setFromCamera(pointerBuffer, camera);
-  //         const intersects = raycaster.intersectObjects(touchAreas);
-  //         if (intersects.length === 0) {
-  //             if (touch.identifier in touching) {
-  //                 dims[touching[touch.identifier]].visible = false;
-  //                 delete touching[touch.identifier];
-  //             }
-  //             continue;
-  //         }
-  //         for (const { object: { uuid } } of intersects) {
-  //             if (touch.identifier in touching) {
-  //                 const touchIndex = touchAreas.findIndex(element => element.uuid === uuid);
-  //                 if (touching[touch.identifier] !== touchIndex) {
-  //                     dims[touching[touch.identifier]].visible = false;
-  //                     touching[touch.identifier] = touchIndex;
-  //                     dims[touching[touch.identifier]].visible = true;
-  //                 }
-  //             }
-  //         }
-  //     }
-  // };
-
-  // const onEnd = (event) => {
-  //     for (const touch of event.changedTouches) {
-  //         if (touch.identifier in touching) {
-  //             dims[touching[touch.identifier]].visible = false;
-  //             delete touching[touch.identifier];
-  //         }
-  //     }
-  // };
 
   const handleTouch = (event) => {
     if (!isPlaying) {
@@ -248,16 +220,26 @@ const main = () => {
       if (intersects.length === 0) {
         continue;
       }
-      for (const { object: { uuid } } of intersects) {
+      for (const {
+        object: { uuid },
+      } of intersects) {
         const latestLaneNote = activeLaneNoteInfo.peekFront();
         if (latestLaneNote === undefined) {
           continue;
         }
 
-        const touchIndex = touchAreas.findIndex(element => element.uuid === uuid);
-        const touchColumn = ["-1.5", "-0.5", "0.5", "1.5", "-1", "1"][touchIndex];
+        const touchIndex = touchAreas.findIndex(
+          (element) => element.uuid === uuid
+        );
+        const touchColumn = ["-1.5", "-0.5", "0.5", "1.5", "-1", "1"][
+          touchIndex
+        ];
 
-        if (elapsedTime > latestLaneNote.timing - 0.1 && elapsedTime < latestLaneNote.timing + 0.1 && latestLaneNote.column.toString() === touchColumn) {
+        if (
+          elapsedTime > latestLaneNote.timing - 0.1 &&
+          elapsedTime < latestLaneNote.timing + 0.1 &&
+          latestLaneNote.column.toString() === touchColumn
+        ) {
           const untilPerfect = Math.abs(elapsedTime - latestLaneNote.timing);
           if (untilPerfect < 0.016) {
             comboCount += 1;
@@ -280,7 +262,11 @@ const main = () => {
         if (latestLaneNote === undefined) {
           continue;
         }
-        if (elapsedTime > latestRailNote.timing - 0.1 && elapsedTime < latestRailNote.timing + 0.1 && latestRailNote.column.toString() === touchColumn) {
+        if (
+          elapsedTime > latestRailNote.timing - 0.1 &&
+          elapsedTime < latestRailNote.timing + 0.1 &&
+          latestRailNote.column.toString() === touchColumn
+        ) {
           const untilPerfect = Math.abs(elapsedTime - latestRailNote.timing);
           if (untilPerfect < 0.016) {
             comboCount += 1;
@@ -403,6 +389,6 @@ const main = () => {
   };
 
   requestAnimationFrame(renderLoop);
-}
+};
 
 main();
