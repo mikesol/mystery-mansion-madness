@@ -7,8 +7,10 @@ import {
   HIGHWAY_SCALE_X_PADDING,
   HIGHWAY_SCALE_Y,
   RAIL_OFFSET,
+  RAIL_SCALE_X,
   RAIL_SCALE_X_BASE,
   RAIL_SCALE_Y,
+  SIDES,
 } from "./plane.js";
 
 export const GLOBAL_START_OFFSET = 1.5;
@@ -78,11 +80,11 @@ export const createLaneNotes = (notes) => {
     material,
     notes.length
   );
+
   const laneNoteInfo = [];
-  //const entriesReversed = [...notes.reverse().entries()];
   const timing = new Float32Array(entriesReversed.length);
   for (var i = 0; i < entriesReversed.length; i++) {
-    //const [index, note] = entriesReversed[i];
+
     const note = entriesReversed[i];
     const noteMatrix = new three.Matrix4();
     noteMatrix.setPosition(
@@ -92,8 +94,9 @@ export const createLaneNotes = (notes) => {
         LANE_NOTE_POSITION_Z
       )
     );
+
     timing[i] = note.timing + GLOBAL_START_OFFSET;
-    // laneNoteMesh.setMatrixAt(index, noteMatrix);
+
     laneNoteMesh.setMatrixAt(i, noteMatrix);
     laneNoteInfo.push({
       timing: note.timing + GLOBAL_START_OFFSET,
@@ -167,6 +170,7 @@ export const createRailNotes = ({
   notes: $notes,
   renderLeftRail,
   renderRightRail,
+  side,
 }) => {
   const notes = $notes.filter(
     (i) =>
@@ -186,10 +190,10 @@ export const createRailNotes = ({
   for (var i = 0; i < entriesReversed.length; i++) {
     const [index, note] = entriesReversed[i];
     const noteMatrix = new three.Matrix4();
-    noteMatrix.makeRotationZ(RAIL_NOTE_ROTATION_Z * note.column);
+    if (side === SIDES.CENTER) { noteMatrix.makeRotationZ(RAIL_NOTE_ROTATION_Z * note.column) };
     noteMatrix.setPosition(
-      (HIGHWAY_SCALE_X / 2 + RAIL_OFFSET - 0.0001) * note.column,
-      RAIL_OFFSET + 0.0001,
+      side === SIDES.CENTER ? (HIGHWAY_SCALE_X / 2 + RAIL_OFFSET - 0.0001) * note.column : (HIGHWAY_SCALE_X / 2 + RAIL_SCALE_X / 2 - 0.0001) * note.column,
+      side === SIDES.CENTER ? RAIL_OFFSET + 0.0001 : 0.0001,
       RAIL_NOTE_POSITION_Z
     );
     timing[i] = note.timing + GLOBAL_START_OFFSET;

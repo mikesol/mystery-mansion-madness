@@ -61,6 +61,9 @@ export const SIDES = {
   LEFT_SIDE: -42,
   CENTER: -41,
   RIGHT_SIDE: -40,
+  LEFT_ON_DECK: -39,
+  RIGHT_ON_DECK: -38,
+  OFF_SCREEN: -35
 };
 
 export const createRails = ({ renderLeftRail, renderRightRail, side }) => {
@@ -250,6 +253,70 @@ export const RIGHT_SIDE_M4 = (() => {
       (HIGHWAY_SCALE_X * Math.sin(Math.PI / 4.0)) / 2.0,
     // add one side of the rail triangle
     RAIL_SCALE_X * Math.sin(Math.PI / 4.0) +
+      // add the horizontal component of the width of the rotated figure
+      // which uses half the base as the hypotenuse
+      (HIGHWAY_SCALE_X * Math.sin(Math.PI / 4.0)) / 2.0,
+    0.0
+  );
+  finalM4.multiplyMatrices(translationM4, rotationM4);
+  return finalM4;
+})();
+
+export const LEFT_ON_DECK_M4 = (() => {
+  const finalM4 = new three.Matrix4();
+  const rotationM4 = new three.Matrix4().makeRotationZ(-RAIL_ROTATION);
+  const translationM4 = new three.Matrix4().makeTranslation(
+    // start from the position
+    HIGHWAY_POSITION_X -
+      // subtract half the scale to move it to the edge
+      HIGHWAY_SCALE_X / 2.0 -
+      // subtract one side of the rail triangle
+      RAIL_SCALE_X * Math.sin(Math.PI / 4.0) -
+      // subtract the full currently-visible lane
+      (HIGHWAY_SCALE_X * Math.sin(Math.PI / 4.0)) -
+      // subtract the full currently-visible rail
+      (RAIL_SCALE_X * Math.sin(Math.PI / 4.0)) -
+      // subtract the horizontal component of the width of the rotated figure
+      // which uses half the base as the hypotenuse
+      (HIGHWAY_SCALE_X * Math.sin(Math.PI / 4.0)) / 2.0,
+    // add one side of the rail triangle
+    RAIL_SCALE_X * Math.sin(Math.PI / 4.0) +
+      // add the full currently-visible lane
+      (HIGHWAY_SCALE_X * Math.sin(Math.PI / 4.0)) +
+      // add the full currently-visible rail
+      (RAIL_SCALE_X * Math.sin(Math.PI / 4.0)) +
+      // add the horizontal component of the width of the rotated figure
+      // which uses half the base as the hypotenuse
+      (HIGHWAY_SCALE_X * Math.sin(Math.PI / 4.0)) / 2.0,
+    0.0
+  );
+  finalM4.multiplyMatrices(translationM4, rotationM4);
+  return finalM4;
+})();
+
+export const RIGHT_ON_DECK_M4 = (() => {
+  const finalM4 = new three.Matrix4();
+  const rotationM4 = new three.Matrix4().makeRotationZ(RAIL_ROTATION);
+  const translationM4 = new three.Matrix4().makeTranslation(
+    // start from the position
+    HIGHWAY_POSITION_X +
+      // subtract half the scale to move it to the edge
+      HIGHWAY_SCALE_X / 2.0 +
+      // subtract one side of the rail triangle
+      RAIL_SCALE_X * Math.sin(Math.PI / 4.0) +
+      // subtract the full currently-visible lane
+      (HIGHWAY_SCALE_X * Math.sin(Math.PI / 4.0)) +
+      // subtract the full currently-visible rail
+      (RAIL_SCALE_X * Math.sin(Math.PI / 4.0)) +
+      // subtract the horizontal component of the width of the rotated figure
+      // which uses half the base as the hypotenuse
+      (HIGHWAY_SCALE_X * Math.sin(Math.PI / 4.0)) / 2.0,
+    // add one side of the rail triangle
+    RAIL_SCALE_X * Math.sin(Math.PI / 4.0) +
+      // add the full currently-visible lane
+      (HIGHWAY_SCALE_X * Math.sin(Math.PI / 4.0)) +
+      // add the full currently-visible rail
+      (RAIL_SCALE_X * Math.sin(Math.PI / 4.0)) +
       // add the horizontal component of the width of the rotated figure
       // which uses half the base as the hypotenuse
       (HIGHWAY_SCALE_X * Math.sin(Math.PI / 4.0)) / 2.0,

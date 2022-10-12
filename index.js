@@ -65,6 +65,7 @@ const makeGroup = ({ scene, renderLeftRail, renderRightRail, side }) => {
     notes,
     renderLeftRail,
     renderRightRail,
+    side
   });
   laneGroup.add(railNoteMesh);
 
@@ -97,6 +98,10 @@ const makeGroup = ({ scene, renderLeftRail, renderRightRail, side }) => {
   } else if (side === SIDES.RIGHT_SIDE) {
     laneGroup.applyMatrix4(RIGHT_SIDE_M4);
   }
+  // nix the visibility if it is not one of the three primary lanes
+  if (!(side === SIDES.LEFT_SIDE || side === SIDES.RIGHT_SIDE || side === SIDES.CENTER)) {
+    laneGroup.visible = false;
+  }
   scene.add(laneGroup);
   return { laneNoteMesh, laneNoteInfo, railNoteMesh, railNoteInfo };
 };
@@ -119,29 +124,68 @@ const main = () => {
   const scene = new three.Scene();
 
   const ALL_GROUPS = [
-
+    makeGroup({
+      scene,
+      renderLeftRail: true,
+      renderRightRail: false,
+      side: SIDES.CENTER,
+      groupId: 0,
+    }),
+    makeGroup({
+      scene,
+      renderLeftRail: true,
+      renderRightRail: false,
+      side: SIDES.LEFT_SIDE,
+      groupId: 1,
+    }),
+    makeGroup({
+      scene,
+      renderLeftRail: true,
+      renderRightRail: false,
+      side: SIDES.LEFT_ON_DECK,
+      groupId: 2,
+    }),
+    makeGroup({
+      scene,
+      renderLeftRail: true,
+      renderRightRail: false,
+      side: SIDES.OFF_SCREEN,
+      groupId: 3,
+    }),
+    makeGroup({
+      scene,
+      renderLeftRail: true,
+      renderRightRail: false,
+      side: SIDES.OFF_SCREEN,
+      groupId: 4,
+    }),
+    makeGroup({
+      scene,
+      renderLeftRail: true,
+      renderRightRail: false,
+      side: SIDES.OFF_SCREEN,
+      groupId: 5,
+    }),
+    makeGroup({
+      scene,
+      renderLeftRail: true,
+      renderRightRail: false,
+      side: SIDES.RIGHT_ON_DECK,
+      groupId: 6,
+    }),
+    makeGroup({
+      scene,
+      renderLeftRail: true,
+      renderRightRail: false,
+      side: SIDES.RIGHT_SIDE,
+      groupId: 7,
+    })
   ];
 
-  const mainGroup = makeGroup({
-    scene,
-    renderLeftRail: true,
-    renderRightRail: false,
-    side: SIDES.CENTER,
-  });
+  let mainGroup = ALL_GROUPS[0]
+  let leftSideGroup = ALL_GROUPS[1];
+  let rightSideGroup = ALL_GROUPS[7];
 
-  const leftSideGroup = makeGroup({
-    scene,
-    renderLeftRail: true,
-    renderRightRail: false,
-    side: SIDES.LEFT_SIDE,
-  });
-
-  const rightSideGroup = makeGroup({
-    scene,
-    renderLeftRail: true,
-    renderRightRail: false,
-    side: SIDES.RIGHT_SIDE,
-  });
 
   const touchAreas = [
     createLaneTouchArea(LANE_TOUCH_AREA_COLUMN.FAR_LEFT),
@@ -151,6 +195,7 @@ const main = () => {
     createRailTouchArea(RAIL_TOUCH_AREA_COLUMN.LEFT),
     createRailTouchArea(RAIL_TOUCH_AREA_COLUMN.RIGHT),
   ];
+
   for (const touchArea of touchAreas) {
     scene.add(touchArea);
   }
