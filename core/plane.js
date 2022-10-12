@@ -129,8 +129,8 @@ export const createRailJudge = ({ renderLeftRail, renderRightRail, side }) => {
     leftRailJudgeMatrix.setPosition(
       new three.Vector3(
         side === SIDES.CENTER
-          ? -HIGHWAY_SCALE_X / 2 - RAIL_OFFSET + 0.003
-          : -HIGHWAY_SCALE_X / 2 - RAIL_SCALE_X / 2 + 0.003,
+          ? -HIGHWAY_SCALE_X / 2 - RAIL_OFFSET
+          : -HIGHWAY_SCALE_X / 2 - RAIL_SCALE_X / 2,
         side === SIDES.CENTER ? 0.003 + RAIL_OFFSET : 0.003,
         JUDGE_POSITION_Z
       )
