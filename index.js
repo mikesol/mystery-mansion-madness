@@ -28,6 +28,7 @@ import {
   HIGHWAY_SCALE_X,
   RAIL_SCALE_X,
   RAIL_ROTATION,
+  SIDES,
   LEFT_SIDE_M4,
   RIGHT_SIDE_M4,
   SIDE_LANE_OPACITY,
@@ -47,11 +48,6 @@ eruda.init();
 //     return (value - r1[0]) * (r2[1] - r2[0]) / (r1[1] - r1[0]) + r2[0];
 // }
 
-const SIDES = {
-  LEFT_SIDE: -42,
-  CENTER: -41,
-  RIGHT_SIDE: -40,
-};
 
 const makeGroup = ({ scene, renderLeftRail, renderRightRail, side }) => {
   const { laneNoteMesh, laneNoteInfo } = createLaneNotes(SPOOKY_LANES);
@@ -80,9 +76,9 @@ const makeGroup = ({ scene, renderLeftRail, renderRightRail, side }) => {
   laneGroup.add(highway);
   const judge = createJudge();
   laneGroup.add(judge);
-  const rails = createRails({ renderLeftRail, renderRightRail });
+  const rails = createRails({ renderLeftRail, renderRightRail, side });
   laneGroup.add(rails);
-  const railJudge = createRailJudge({ renderLeftRail, renderRightRail });
+  const railJudge = createRailJudge({ renderLeftRail, renderRightRail, side });
   laneGroup.add(railJudge);
 
   const dims = [
@@ -129,7 +125,7 @@ const main = () => {
   const mainGroup = makeGroup({
     scene,
     renderLeftRail: true,
-    renderRightRail: true,
+    renderRightRail: false,
     side: SIDES.CENTER,
   });
 
@@ -142,8 +138,8 @@ const main = () => {
 
   const rightSideGroup = makeGroup({
     scene,
-    renderLeftRail: false,
-    renderRightRail: true,
+    renderLeftRail: true,
+    renderRightRail: false,
     side: SIDES.RIGHT_SIDE,
   });
 

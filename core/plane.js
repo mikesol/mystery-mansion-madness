@@ -57,18 +57,28 @@ export const RAIL_GEOMETRY = new three.BoxGeometry(
 );
 export const RAIL_MATERIAL = new three.MeshBasicMaterial({ color: 0x4a4847 });
 
-export const createRails = ({ renderLeftRail, renderRightRail }) => {
+export const SIDES = {
+  LEFT_SIDE: -42,
+  CENTER: -41,
+  RIGHT_SIDE: -40,
+};
+
+export const createRails = ({ renderLeftRail, renderRightRail, side }) => {
   const mesh = new three.InstancedMesh(RAIL_GEOMETRY, RAIL_MATERIAL, 2);
 
   if (renderLeftRail) {
     const leftRailMatrix = new three.Matrix4();
-    leftRailMatrix.makeRotationFromEuler(
-      new three.Euler(0.0, 0.0, -RAIL_ROTATION)
-    );
+    if (side === SIDES.CENTER) {
+      leftRailMatrix.makeRotationFromEuler(
+        new three.Euler(0.0, 0.0, -RAIL_ROTATION)
+      );
+    }
     leftRailMatrix.setPosition(
       new three.Vector3(
-        -HIGHWAY_SCALE_X / 2 - RAIL_OFFSET,
-        RAIL_OFFSET,
+        side === SIDES.CENTER
+          ? -HIGHWAY_SCALE_X / 2 - RAIL_OFFSET
+          : -HIGHWAY_SCALE_X / 2 - RAIL_SCALE_X / 2,
+        side === SIDES.CENTER ? RAIL_OFFSET : 0.0,
         RAIL_POSITION_Z
       )
     );
@@ -101,7 +111,7 @@ export const RAIL_JUDGE_MATERIAL = new three.MeshBasicMaterial({
   color: 0xffffff,
 });
 
-export const createRailJudge = ({ renderLeftRail, renderRightRail }) => {
+export const createRailJudge = ({ renderLeftRail, renderRightRail, side }) => {
   const mesh = new three.InstancedMesh(
     RAIL_JUDGE_GEOMETRY,
     RAIL_JUDGE_MATERIAL,
@@ -110,13 +120,18 @@ export const createRailJudge = ({ renderLeftRail, renderRightRail }) => {
 
   if (renderLeftRail) {
     const leftRailJudgeMatrix = new three.Matrix4();
-    leftRailJudgeMatrix.makeRotationFromEuler(
-      new three.Euler(0.0, 0.0, -RAIL_ROTATION)
-    );
+    if (side === SIDES.CENTER) {
+      leftRailJudgeMatrix.makeRotationFromEuler(
+        new three.Euler(0.0, 0.0, -RAIL_ROTATION)
+      );
+    }
+
     leftRailJudgeMatrix.setPosition(
       new three.Vector3(
-        -HIGHWAY_SCALE_X / 2 - RAIL_OFFSET + 0.003,
-        RAIL_OFFSET + 0.003,
+        side === SIDES.CENTER
+          ? -HIGHWAY_SCALE_X / 2 - RAIL_OFFSET + 0.003
+          : -HIGHWAY_SCALE_X / 2 - RAIL_SCALE_X / 2 + 0.003,
+        side === SIDES.CENTER ? 0.003 + RAIL_OFFSET : 0.003,
         JUDGE_POSITION_Z
       )
     );
