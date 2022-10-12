@@ -28,6 +28,9 @@ import {
   HIGHWAY_SCALE_X,
   RAIL_SCALE_X,
   RAIL_ROTATION,
+  LEFT_SIDE_M4,
+  RIGHT_SIDE_M4,
+  SIDE_LANE_OPACITY,
 } from "./core/plane.js";
 import {
   createLaneTouchArea,
@@ -50,56 +53,6 @@ const SIDES = {
   RIGHT_SIDE: -40,
 };
 
-const LEFT_SIDE_M4 = (() => {
-  const finalM4 = new three.Matrix4();
-    const rotationM4 = new three.Matrix4().makeRotationZ(-RAIL_ROTATION);
-    const translationM4 = new three.Matrix4().makeTranslation(
-      // start from the position
-      HIGHWAY_POSITION_X -
-        // subtract half the scale to move it to the edge
-        HIGHWAY_SCALE_X / 2.0 -
-        // subtract one side of the rail triangle
-        RAIL_SCALE_X * Math.sin(Math.PI / 4.0) -
-        // subtract the horizontal component of the width of the rotated figure
-        // which uses half the base as the hypotenuse
-        (HIGHWAY_SCALE_X * Math.sin(Math.PI / 4.0)) / 2.0,
-      // add one side of the rail triangle
-      RAIL_SCALE_X * Math.sin(Math.PI / 4.0) +
-        // add the horizontal component of the width of the rotated figure
-        // which uses half the base as the hypotenuse
-        (HIGHWAY_SCALE_X * Math.sin(Math.PI / 4.0)) / 2.0,
-      0.0
-    );
-    finalM4.multiplyMatrices(translationM4, rotationM4);
-    return finalM4;
-})()
-
-const RIGHT_SIDE_M4 = (() => {
-  const finalM4 = new three.Matrix4();
-    const rotationM4 = new three.Matrix4().makeRotationZ(RAIL_ROTATION);
-    const translationM4 = new three.Matrix4().makeTranslation(
-      // start from the position
-      HIGHWAY_POSITION_X +
-        // add half the scale to move it to the edge
-        HIGHWAY_SCALE_X / 2.0 +
-        // add one side of the rail triangle
-        RAIL_SCALE_X * Math.sin(Math.PI / 4.0) +
-        // add the horizontal component of the width of the rotated figure
-        // which uses half the base as the hypotenuse
-        (HIGHWAY_SCALE_X * Math.sin(Math.PI / 4.0)) / 2.0,
-      // add one side of the rail triangle
-      RAIL_SCALE_X * Math.sin(Math.PI / 4.0) +
-        // add the horizontal component of the width of the rotated figure
-        // which uses half the base as the hypotenuse
-        (HIGHWAY_SCALE_X * Math.sin(Math.PI / 4.0)) / 2.0,
-      0.0
-    );
-    finalM4.multiplyMatrices(translationM4, rotationM4);
-    return finalM4;
-})()
-
-const SIDE_LANE_OPACITY = 0.5;
-
 const makeGroup = ({ scene, renderLeftRail, renderRightRail, side }) => {
   const { laneNoteMesh, laneNoteInfo } = createLaneNotes(SPOOKY_LANES);
 
@@ -120,7 +73,7 @@ const makeGroup = ({ scene, renderLeftRail, renderRightRail, side }) => {
   laneGroup.add(railNoteMesh);
 
   const highway = createHighway();
-  if (side === SIDES.LEFT_SIDE || side === SIDES.RIGHT_SIDE) {
+  if (side !== SIDES.CENTER) {
     highway.material.transparent = true;
     highway.material.opacity = SIDE_LANE_OPACITY;
   }
@@ -143,12 +96,9 @@ const makeGroup = ({ scene, renderLeftRail, renderRightRail, side }) => {
   for (const laneDim of dims) {
     laneGroup.add(laneDim);
   }
-  const DUMB_X_SHIFT_JUST_TO_CHECK = 0.1;
-  const DUMB_Y_SHIFT_JUST_TO_CHECK = 0.3;
   if (side === SIDES.LEFT_SIDE) {
     laneGroup.applyMatrix4(LEFT_SIDE_M4);
-  }
-  if (side === SIDES.RIGHT_SIDE) {
+  } else if (side === SIDES.RIGHT_SIDE) {
     laneGroup.applyMatrix4(RIGHT_SIDE_M4);
   }
   scene.add(laneGroup);
@@ -172,7 +122,10 @@ const main = () => {
 
   const scene = new three.Scene();
 
-  // { laneNoteMesh, laneNoteInfo, railNoteMesh, railNoteInfo }
+  const ALL_GROUPS = [
+
+  ];
+
   const mainGroup = makeGroup({
     scene,
     renderLeftRail: true,
