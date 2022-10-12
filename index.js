@@ -24,6 +24,10 @@ import {
   createRails,
   createLaneDim,
   createRailDim,
+  HIGHWAY_POSITION_X,
+  HIGHWAY_SCALE_X,
+  RAIL_SCALE_X,
+  RAIL_ROTATION,
 } from "./core/plane.js";
 import {
   createLaneTouchArea,
@@ -40,7 +44,63 @@ eruda.init();
 //     return (value - r1[0]) * (r2[1] - r2[0]) / (r1[1] - r1[0]) + r2[0];
 // }
 
-const makeGroup = ({ scene, renderLeftRail, renderRightRail }) => {
+const SIDES = {
+  LEFT_SIDE: -42,
+  CENTER: -41,
+  RIGHT_SIDE: -40,
+};
+
+const LEFT_SIDE_M4 = (() => {
+  const finalM4 = new three.Matrix4();
+    const rotationM4 = new three.Matrix4().makeRotationZ(-RAIL_ROTATION);
+    const translationM4 = new three.Matrix4().makeTranslation(
+      // start from the position
+      HIGHWAY_POSITION_X -
+        // subtract half the scale to move it to the edge
+        HIGHWAY_SCALE_X / 2.0 -
+        // subtract one side of the rail triangle
+        RAIL_SCALE_X * Math.sin(Math.PI / 4.0) -
+        // subtract the horizontal component of the width of the rotated figure
+        // which uses half the base as the hypotenuse
+        (HIGHWAY_SCALE_X * Math.sin(Math.PI / 4.0)) / 2.0,
+      // add one side of the rail triangle
+      RAIL_SCALE_X * Math.sin(Math.PI / 4.0) +
+        // add the horizontal component of the width of the rotated figure
+        // which uses half the base as the hypotenuse
+        (HIGHWAY_SCALE_X * Math.sin(Math.PI / 4.0)) / 2.0,
+      0.0
+    );
+    finalM4.multiplyMatrices(translationM4, rotationM4);
+    return finalM4;
+})()
+
+const RIGHT_SIDE_M4 = (() => {
+  const finalM4 = new three.Matrix4();
+    const rotationM4 = new three.Matrix4().makeRotationZ(RAIL_ROTATION);
+    const translationM4 = new three.Matrix4().makeTranslation(
+      // start from the position
+      HIGHWAY_POSITION_X +
+        // add half the scale to move it to the edge
+        HIGHWAY_SCALE_X / 2.0 +
+        // add one side of the rail triangle
+        RAIL_SCALE_X * Math.sin(Math.PI / 4.0) +
+        // add the horizontal component of the width of the rotated figure
+        // which uses half the base as the hypotenuse
+        (HIGHWAY_SCALE_X * Math.sin(Math.PI / 4.0)) / 2.0,
+      // add one side of the rail triangle
+      RAIL_SCALE_X * Math.sin(Math.PI / 4.0) +
+        // add the horizontal component of the width of the rotated figure
+        // which uses half the base as the hypotenuse
+        (HIGHWAY_SCALE_X * Math.sin(Math.PI / 4.0)) / 2.0,
+      0.0
+    );
+    finalM4.multiplyMatrices(translationM4, rotationM4);
+    return finalM4;
+})()
+
+const SIDE_LANE_OPACITY = 0.5;
+
+const makeGroup = ({ scene, renderLeftRail, renderRightRail, side }) => {
   const { laneNoteMesh, laneNoteInfo } = createLaneNotes(SPOOKY_LANES);
 
   const laneGroup = new three.Group();
@@ -52,16 +112,24 @@ const makeGroup = ({ scene, renderLeftRail, renderRightRail }) => {
   for (let i = 1.5, j = 0; i < 31.0; i += 0.8, j = (j + 1) % 2) {
     notes.push({ timing: i, column: lanes[j] });
   }
-  const { railNoteMesh, railNoteInfo } = createRailNotes({notes, renderLeftRail, renderRightRail});
+  const { railNoteMesh, railNoteInfo } = createRailNotes({
+    notes,
+    renderLeftRail,
+    renderRightRail,
+  });
   laneGroup.add(railNoteMesh);
 
   const highway = createHighway();
+  if (side === SIDES.LEFT_SIDE || side === SIDES.RIGHT_SIDE) {
+    highway.material.transparent = true;
+    highway.material.opacity = SIDE_LANE_OPACITY;
+  }
   laneGroup.add(highway);
   const judge = createJudge();
   laneGroup.add(judge);
-  const rails = createRails({renderLeftRail, renderRightRail});
+  const rails = createRails({ renderLeftRail, renderRightRail });
   laneGroup.add(rails);
-  const railJudge = createRailJudge({renderLeftRail, renderRightRail});
+  const railJudge = createRailJudge({ renderLeftRail, renderRightRail });
   laneGroup.add(railJudge);
 
   const dims = [
@@ -74,6 +142,14 @@ const makeGroup = ({ scene, renderLeftRail, renderRightRail }) => {
   ];
   for (const laneDim of dims) {
     laneGroup.add(laneDim);
+  }
+  const DUMB_X_SHIFT_JUST_TO_CHECK = 0.1;
+  const DUMB_Y_SHIFT_JUST_TO_CHECK = 0.3;
+  if (side === SIDES.LEFT_SIDE) {
+    laneGroup.applyMatrix4(LEFT_SIDE_M4);
+  }
+  if (side === SIDES.RIGHT_SIDE) {
+    laneGroup.applyMatrix4(RIGHT_SIDE_M4);
   }
   scene.add(laneGroup);
   return { laneNoteMesh, laneNoteInfo, railNoteMesh, railNoteInfo };
@@ -96,10 +172,26 @@ const main = () => {
 
   const scene = new three.Scene();
 
-  const { laneNoteMesh, laneNoteInfo, railNoteMesh, railNoteInfo } = makeGroup({
+  // { laneNoteMesh, laneNoteInfo, railNoteMesh, railNoteInfo }
+  const mainGroup = makeGroup({
     scene,
     renderLeftRail: true,
     renderRightRail: true,
+    side: SIDES.CENTER,
+  });
+
+  const leftSideGroup = makeGroup({
+    scene,
+    renderLeftRail: true,
+    renderRightRail: false,
+    side: SIDES.LEFT_SIDE,
+  });
+
+  const rightSideGroup = makeGroup({
+    scene,
+    renderLeftRail: false,
+    renderRightRail: true,
+    side: SIDES.RIGHT_SIDE,
   });
 
   const touchAreas = [
@@ -302,43 +394,35 @@ const main = () => {
 
     if (isPlaying) {
       const elapsedTime = audioContext.currentTime - beginTime;
-      laneNoteMesh.material.uniforms.uTime.value = elapsedTime;
-      railNoteMesh.material.uniforms.uTime.value = elapsedTime;
+      mainGroup.laneNoteMesh.material.uniforms.uTime.value = elapsedTime;
+      mainGroup.railNoteMesh.material.uniforms.uTime.value = elapsedTime;
+      leftSideGroup.laneNoteMesh.material.uniforms.uTime.value = elapsedTime;
+      leftSideGroup.railNoteMesh.material.uniforms.uTime.value = elapsedTime;
+      rightSideGroup.laneNoteMesh.material.uniforms.uTime.value = elapsedTime;
+      rightSideGroup.railNoteMesh.material.uniforms.uTime.value = elapsedTime;
       while (true) {
-        const latestNote = laneNoteInfo.at(-1);
+        const latestNote = mainGroup.laneNoteInfo.at(-1);
         if (latestNote === undefined) {
           break;
         }
         if (elapsedTime > latestNote.timing - context.movementThreshold) {
-          activeLaneNoteInfo.push(laneNoteInfo.pop());
+          activeLaneNoteInfo.push(mainGroup.laneNoteInfo.pop());
         } else {
           break;
         }
       }
 
       while (true) {
-        const latestNote = railNoteInfo.at(-1);
+        const latestNote = mainGroup.railNoteInfo.at(-1);
         if (latestNote === undefined) {
           break;
         }
         if (elapsedTime > latestNote.timing - context.movementThreshold) {
-          activeRailNoteInfo.push(railNoteInfo.pop());
+          activeRailNoteInfo.push(mainGroup.railNoteInfo.pop());
         } else {
           break;
         }
       }
-
-      // for (const { timing, index, matrix } of activeLaneNoteInfo.toArray()) {
-      //     positionBuffer.setFromMatrixPosition(matrix);
-      //     positionBuffer.z = interpolate(elapsedTime, [timing - context.movementThreshold, timing], [-4.8, 0.0]);
-      //     laneNoteMesh.setMatrixAt(index, matrix.setPosition(positionBuffer));
-      // }
-
-      // for (const { timing, index, matrix } of activeRailNoteInfo.toArray()) {
-      //     positionBuffer.setFromMatrixPosition(matrix);
-      //     positionBuffer.z = interpolate(elapsedTime, [timing - context.movementThreshold, timing], [-4.8, 0.0]);
-      //     railNoteMesh.setMatrixAt(index, matrix.setPosition(positionBuffer));
-      // }
 
       while (true) {
         const latestNote = activeLaneNoteInfo.peekFront();
@@ -373,9 +457,6 @@ const main = () => {
           break;
         }
       }
-
-      // laneNoteMesh.instanceMatrix.needsUpdate = true;
-      // railNoteMesh.instanceMatrix.needsUpdate = true;
     }
 
     tryResizeRendererToDisplay();

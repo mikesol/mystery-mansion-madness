@@ -10,17 +10,17 @@ export const HIGHWAY_SCALE_Z = 5.0;
 export const HIGHWAY_POSITION_X = 0.0;
 export const HIGHWAY_POSITION_Y = 0.0;
 export const HIGHWAY_POSITION_Z = -2.4;
-export const HIGHWAY_GEOMETRY = new three.BoxGeometry(
+export const HIGHWAY_GEOMETRY = () => new three.BoxGeometry(
   HIGHWAY_SCALE_X,
   HIGHWAY_SCALE_Y,
   HIGHWAY_SCALE_Z
 );
-export const HIGHWAY_MATERIAL = new three.MeshBasicMaterial({
+export const HIGHWAY_MATERIAL = () => new three.MeshBasicMaterial({
   color: 0x353436,
 });
 
 export const createHighway = () => {
-  const mesh = new three.Mesh(HIGHWAY_GEOMETRY, HIGHWAY_MATERIAL);
+  const mesh = new three.Mesh(HIGHWAY_GEOMETRY(), HIGHWAY_MATERIAL());
   mesh.position.set(HIGHWAY_POSITION_X, HIGHWAY_POSITION_Y, HIGHWAY_POSITION_Z);
   return mesh;
 };
