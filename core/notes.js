@@ -100,9 +100,9 @@ export const createLaneNotes = ({notes, groupId}) => {
     laneNoteMesh.setMatrixAt(i, noteMatrix);
     laneNoteInfo.push({
       timing: note.timing + GLOBAL_START_OFFSET,
-      // matrix: noteMatrix,
+      groupId,
+      noteId: i,
       hasHit: false,
-      // index: index,
       column: note.column,
     });
   }
@@ -169,6 +169,7 @@ export const RAIL_COLUMN = {
 export const createRailNotes = ({
   notes,
   side,
+  groupId,
 }) => {
   const geometry = RAIL_NOTE_GEOMETRY();
   const material = RAIL_NOTE_MATERIAL();
@@ -193,9 +194,9 @@ export const createRailNotes = ({
     railNoteMesh.setMatrixAt(index, noteMatrix);
     railNoteInfo.push({
       timing: note.timing + GLOBAL_START_OFFSET,
-      // matrix: noteMatrix,
       hasHit: false,
-      // index: index,
+      noteId: i,
+      groupId,
       column: note.column,
     });
   }
