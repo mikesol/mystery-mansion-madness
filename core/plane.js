@@ -63,45 +63,29 @@ export const SIDES = {
   RIGHT_SIDE: -40,
   LEFT_ON_DECK: -39,
   RIGHT_ON_DECK: -38,
-  OFF_SCREEN: -35
+  OFF_SCREEN: -35,
 };
 
-export const createRails = ({ renderLeftRail, renderRightRail, side }) => {
-  const mesh = new three.InstancedMesh(RAIL_GEOMETRY, RAIL_MATERIAL, 2);
+export const createRails = ({ side }) => {
+  const mesh = new three.Mesh(RAIL_GEOMETRY, RAIL_MATERIAL);
 
-  if (renderLeftRail) {
-    const leftRailMatrix = new three.Matrix4();
-    if (side === SIDES.CENTER) {
-      leftRailMatrix.makeRotationFromEuler(
-        new three.Euler(0.0, 0.0, -RAIL_ROTATION)
-      );
-    }
-    leftRailMatrix.setPosition(
-      new three.Vector3(
-        side === SIDES.CENTER
-          ? -HIGHWAY_SCALE_X / 2 - RAIL_OFFSET
-          : -HIGHWAY_SCALE_X / 2 - RAIL_SCALE_X / 2,
-        side === SIDES.CENTER ? RAIL_OFFSET : 0.0,
-        RAIL_POSITION_Z
-      )
+  const leftRailMatrix = new three.Matrix4();
+  if (side === SIDES.CENTER) {
+    leftRailMatrix.makeRotationFromEuler(
+      new three.Euler(0.0, 0.0, -RAIL_ROTATION)
     );
-    mesh.setMatrixAt(0, leftRailMatrix);
   }
+  leftRailMatrix.setPosition(
+    new three.Vector3(
+      side === SIDES.CENTER
+        ? -HIGHWAY_SCALE_X / 2 - RAIL_OFFSET
+        : -HIGHWAY_SCALE_X / 2 - RAIL_SCALE_X / 2,
+      side === SIDES.CENTER ? RAIL_OFFSET : 0.0,
+      RAIL_POSITION_Z
+    )
+  );
+  mesh.applyMatrix4(leftRailMatrix);
 
-  if (renderRightRail) {
-    const rightRailMatrix = new three.Matrix4();
-    rightRailMatrix.makeRotationFromEuler(
-      new three.Euler(0.0, 0.0, RAIL_ROTATION)
-    );
-    rightRailMatrix.setPosition(
-      new three.Vector3(
-        HIGHWAY_SCALE_X / 2 + RAIL_OFFSET,
-        RAIL_OFFSET,
-        RAIL_POSITION_Z
-      )
-    );
-    mesh.setMatrixAt(1, rightRailMatrix);
-  }
   return mesh;
 };
 
@@ -114,47 +98,30 @@ export const RAIL_JUDGE_MATERIAL = new three.MeshBasicMaterial({
   color: 0xffffff,
 });
 
-export const createRailJudge = ({ renderLeftRail, renderRightRail, side }) => {
+export const createRailJudge = ({ side }) => {
   const mesh = new three.InstancedMesh(
     RAIL_JUDGE_GEOMETRY,
     RAIL_JUDGE_MATERIAL,
     2
   );
 
-  if (renderLeftRail) {
-    const leftRailJudgeMatrix = new three.Matrix4();
-    if (side === SIDES.CENTER) {
-      leftRailJudgeMatrix.makeRotationFromEuler(
-        new three.Euler(0.0, 0.0, -RAIL_ROTATION)
-      );
-    }
-
-    leftRailJudgeMatrix.setPosition(
-      new three.Vector3(
-        side === SIDES.CENTER
-          ? -HIGHWAY_SCALE_X / 2 - RAIL_OFFSET
-          : -HIGHWAY_SCALE_X / 2 - RAIL_SCALE_X / 2,
-        side === SIDES.CENTER ? 0.003 + RAIL_OFFSET : 0.003,
-        JUDGE_POSITION_Z
-      )
+  const leftRailJudgeMatrix = new three.Matrix4();
+  if (side === SIDES.CENTER) {
+    leftRailJudgeMatrix.makeRotationFromEuler(
+      new three.Euler(0.0, 0.0, -RAIL_ROTATION)
     );
-    mesh.setMatrixAt(0, leftRailJudgeMatrix);
   }
 
-  if (renderRightRail) {
-    const rightRailJudgeMatrix = new three.Matrix4();
-    rightRailJudgeMatrix.makeRotationFromEuler(
-      new three.Euler(0.0, 0.0, RAIL_ROTATION)
-    );
-    rightRailJudgeMatrix.setPosition(
-      new three.Vector3(
-        HIGHWAY_SCALE_X / 2 + RAIL_OFFSET - 0.003,
-        RAIL_OFFSET + 0.003,
-        JUDGE_POSITION_Z
-      )
-    );
-    mesh.setMatrixAt(1, rightRailJudgeMatrix);
-  }
+  leftRailJudgeMatrix.setPosition(
+    new three.Vector3(
+      side === SIDES.CENTER
+        ? -HIGHWAY_SCALE_X / 2 - RAIL_OFFSET
+        : -HIGHWAY_SCALE_X / 2 - RAIL_SCALE_X / 2,
+      side === SIDES.CENTER ? 0.003 + RAIL_OFFSET : 0.003,
+      JUDGE_POSITION_Z
+    )
+  );
+  mesh.setMatrixAt(0, leftRailJudgeMatrix);
 
   return mesh;
 };
@@ -273,18 +240,18 @@ export const LEFT_ON_DECK_M4 = (() => {
       // subtract one side of the rail triangle
       RAIL_SCALE_X * Math.sin(Math.PI / 4.0) -
       // subtract the full currently-visible lane
-      (HIGHWAY_SCALE_X * Math.sin(Math.PI / 4.0)) -
+      HIGHWAY_SCALE_X * Math.sin(Math.PI / 4.0) -
       // subtract the full currently-visible rail
-      (RAIL_SCALE_X * Math.sin(Math.PI / 4.0)) -
+      RAIL_SCALE_X * Math.sin(Math.PI / 4.0) -
       // subtract the horizontal component of the width of the rotated figure
       // which uses half the base as the hypotenuse
       (HIGHWAY_SCALE_X * Math.sin(Math.PI / 4.0)) / 2.0,
     // add one side of the rail triangle
     RAIL_SCALE_X * Math.sin(Math.PI / 4.0) +
       // add the full currently-visible lane
-      (HIGHWAY_SCALE_X * Math.sin(Math.PI / 4.0)) +
+      HIGHWAY_SCALE_X * Math.sin(Math.PI / 4.0) +
       // add the full currently-visible rail
-      (RAIL_SCALE_X * Math.sin(Math.PI / 4.0)) +
+      RAIL_SCALE_X * Math.sin(Math.PI / 4.0) +
       // add the horizontal component of the width of the rotated figure
       // which uses half the base as the hypotenuse
       (HIGHWAY_SCALE_X * Math.sin(Math.PI / 4.0)) / 2.0,
@@ -305,18 +272,18 @@ export const RIGHT_ON_DECK_M4 = (() => {
       // subtract one side of the rail triangle
       RAIL_SCALE_X * Math.sin(Math.PI / 4.0) +
       // subtract the full currently-visible lane
-      (HIGHWAY_SCALE_X * Math.sin(Math.PI / 4.0)) +
+      HIGHWAY_SCALE_X * Math.sin(Math.PI / 4.0) +
       // subtract the full currently-visible rail
-      (RAIL_SCALE_X * Math.sin(Math.PI / 4.0)) +
+      RAIL_SCALE_X * Math.sin(Math.PI / 4.0) +
       // subtract the horizontal component of the width of the rotated figure
       // which uses half the base as the hypotenuse
       (HIGHWAY_SCALE_X * Math.sin(Math.PI / 4.0)) / 2.0,
     // add one side of the rail triangle
     RAIL_SCALE_X * Math.sin(Math.PI / 4.0) +
       // add the full currently-visible lane
-      (HIGHWAY_SCALE_X * Math.sin(Math.PI / 4.0)) +
+      HIGHWAY_SCALE_X * Math.sin(Math.PI / 4.0) +
       // add the full currently-visible rail
-      (RAIL_SCALE_X * Math.sin(Math.PI / 4.0)) +
+      RAIL_SCALE_X * Math.sin(Math.PI / 4.0) +
       // add the horizontal component of the width of the rotated figure
       // which uses half the base as the hypotenuse
       (HIGHWAY_SCALE_X * Math.sin(Math.PI / 4.0)) / 2.0,

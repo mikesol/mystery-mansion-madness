@@ -24,10 +24,6 @@ import {
   createRails,
   createLaneDim,
   createRailDim,
-  HIGHWAY_POSITION_X,
-  HIGHWAY_SCALE_X,
-  RAIL_SCALE_X,
-  RAIL_ROTATION,
   SIDES,
   LEFT_SIDE_M4,
   RIGHT_SIDE_M4,
@@ -44,28 +40,32 @@ import halloweenUrl from "./halloween.mp3";
 
 eruda.init();
 
-// const interpolate = (value, r1, r2) => {
-//     return (value - r1[0]) * (r2[1] - r2[0]) / (r1[1] - r1[0]) + r2[0];
-// }
-
-
-const makeGroup = ({ scene, renderLeftRail, renderRightRail, side }) => {
-  const { laneNoteMesh, laneNoteInfo } = createLaneNotes(SPOOKY_LANES);
+const makeGroup = ({ scene, side, groupId }) => {
+  // thin stuff out
+  const laneNotes = SPOOKY_LANES.filter(
+    (_, i) => i % 8 !== groupId && (i + 3) % 8 !== groupId
+  );
+  const { laneNoteMesh, laneNoteInfo } = createLaneNotes({
+    notes: laneNotes,
+    groupId,
+  });
 
   const laneGroup = new three.Group();
 
   laneGroup.add(laneNoteMesh);
 
-  const notes = [];
-  const lanes = [RAIL_COLUMN.LEFT, RAIL_COLUMN.RIGHT];
-  for (let i = 1.5, j = 0; i < 31.0; i += 0.8, j = (j + 1) % 2) {
-    notes.push({ timing: i, column: lanes[j] });
+  const railNotes = [];
+  for (
+    let i = 1.5 + 0.1 * groupId;
+    i < 120.0;
+    i += 1.6
+  ) {
+    railNotes.push({ timing: i, column: RAIL_COLUMN.LEFT });
   }
   const { railNoteMesh, railNoteInfo } = createRailNotes({
-    notes,
-    renderLeftRail,
-    renderRightRail,
-    side
+    notes: railNotes,
+    side,
+    groupId,
   });
   laneGroup.add(railNoteMesh);
 
@@ -77,9 +77,9 @@ const makeGroup = ({ scene, renderLeftRail, renderRightRail, side }) => {
   laneGroup.add(highway);
   const judge = createJudge();
   laneGroup.add(judge);
-  const rails = createRails({ renderLeftRail, renderRightRail, side });
+  const rails = createRails({ side });
   laneGroup.add(rails);
-  const railJudge = createRailJudge({ renderLeftRail, renderRightRail, side });
+  const railJudge = createRailJudge({ side });
   laneGroup.add(railJudge);
 
   const dims = [
@@ -99,7 +99,13 @@ const makeGroup = ({ scene, renderLeftRail, renderRightRail, side }) => {
     laneGroup.applyMatrix4(RIGHT_SIDE_M4);
   }
   // nix the visibility if it is not one of the three primary lanes
-  if (!(side === SIDES.LEFT_SIDE || side === SIDES.RIGHT_SIDE || side === SIDES.CENTER)) {
+  if (
+    !(
+      side === SIDES.LEFT_SIDE ||
+      side === SIDES.RIGHT_SIDE ||
+      side === SIDES.CENTER
+    )
+  ) {
     laneGroup.visible = false;
   }
   scene.add(laneGroup);
@@ -126,66 +132,49 @@ const main = () => {
   const ALL_GROUPS = [
     makeGroup({
       scene,
-      renderLeftRail: true,
-      renderRightRail: false,
       side: SIDES.CENTER,
       groupId: 0,
     }),
     makeGroup({
       scene,
-      renderLeftRail: true,
-      renderRightRail: false,
       side: SIDES.LEFT_SIDE,
       groupId: 1,
     }),
     makeGroup({
       scene,
-      renderLeftRail: true,
-      renderRightRail: false,
       side: SIDES.LEFT_ON_DECK,
       groupId: 2,
     }),
     makeGroup({
       scene,
-      renderLeftRail: true,
-      renderRightRail: false,
       side: SIDES.OFF_SCREEN,
       groupId: 3,
     }),
     makeGroup({
       scene,
-      renderLeftRail: true,
-      renderRightRail: false,
       side: SIDES.OFF_SCREEN,
       groupId: 4,
     }),
     makeGroup({
       scene,
-      renderLeftRail: true,
-      renderRightRail: false,
       side: SIDES.OFF_SCREEN,
       groupId: 5,
     }),
     makeGroup({
       scene,
-      renderLeftRail: true,
-      renderRightRail: false,
       side: SIDES.RIGHT_ON_DECK,
       groupId: 6,
     }),
     makeGroup({
       scene,
-      renderLeftRail: true,
-      renderRightRail: false,
       side: SIDES.RIGHT_SIDE,
       groupId: 7,
-    })
+    }),
   ];
 
-  let mainGroup = ALL_GROUPS[0]
+  let mainGroup = ALL_GROUPS[0];
   let leftSideGroup = ALL_GROUPS[1];
   let rightSideGroup = ALL_GROUPS[7];
-
 
   const touchAreas = [
     createLaneTouchArea(LANE_TOUCH_AREA_COLUMN.FAR_LEFT),
@@ -345,7 +334,7 @@ const main = () => {
           }
         }
         const latestRailNote = activeRailNoteInfo.peekFront();
-        if (latestLaneNote === undefined) {
+        if (latestRailNote === undefined) {
           continue;
         }
         if (

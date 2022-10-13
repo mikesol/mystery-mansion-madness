@@ -71,7 +71,7 @@ export const LANE_COLUMN = {
   FAR_RIGHT: 1.5,
 };
 
-export const createLaneNotes = (notes) => {
+export const createLaneNotes = ({notes, groupId}) => {
   const entriesReversed = [...notes].reverse();
   const geometry = LANE_NOTE_GEOMETRY();
   const material = LANE_NOTE_MATERIAL();
@@ -167,16 +167,9 @@ export const RAIL_COLUMN = {
 };
 
 export const createRailNotes = ({
-  notes: $notes,
-  renderLeftRail,
-  renderRightRail,
+  notes,
   side,
 }) => {
-  const notes = $notes.filter(
-    (i) =>
-      (i.column == RAIL_COLUMN.LEFT && renderLeftRail) ||
-      (i.column == RAIL_COLUMN.RIGHT && renderRightRail)
-  );
   const geometry = RAIL_NOTE_GEOMETRY();
   const material = RAIL_NOTE_MATERIAL();
   const railNoteMesh = new three.InstancedMesh(
