@@ -3,16 +3,16 @@
 import * as three from "three";
 
 const CAMERA_X_POSITION = 0.00;
-const CAMERA_Y_POSITION = 0.50;
-const CAMERA_Z_POSITION = 0.10;
+const CAMERA_Y_POSITION = 0.00;
+const CAMERA_Z_POSITION = 10.0;
 
-const CAMERA_X_ROTATION = -0.75;
+const CAMERA_X_ROTATION = 0.00;
 const CAMERA_Y_ROTATION = 0.00;
 const CAMERA_Z_ROTATION = 0.00;
 
-const CAMERA_FOV = 90.00;
+const CAMERA_FOV = 60.00;
 const CAMERA_NEAR = 0.10;
-const CAMERA_FAR = 10.00;
+const CAMERA_FAR = 20.00;
 
 export const createCamera = (aspect) => {
     const camera = new three.PerspectiveCamera(CAMERA_FOV, aspect, CAMERA_NEAR, CAMERA_FAR);
