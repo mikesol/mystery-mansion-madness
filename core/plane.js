@@ -50,6 +50,21 @@ export const RAIL_SCALE_Z = HIGHWAY_SCALE_Z;
 export const RAIL_POSITION_Z = HIGHWAY_POSITION_Z;
 export const RAIL_OFFSET = RAIL_SCALE_X / 2 / Math.sqrt(2);
 export const RAIL_ROTATION = (45 * Math.PI) / 180;
+export const RAIL_CENTER_QUTERNION = new three.Quaternion().setFromEuler(
+  new three.Euler(0.0, 0.0, -RAIL_ROTATION)
+);
+export const RAIL_SIDE_QUTERNION = new three.Quaternion();
+export const RAIL_CENTER_POSITION = new three.Vector3(
+  -HIGHWAY_SCALE_X / 2 -RAIL_OFFSET,
+  RAIL_OFFSET,
+  0.0
+);
+export const RAIL_SIDE_POSITION = new three.Vector3(
+  -HIGHWAY_SCALE_X / 2 -RAIL_SCALE_X / 2,
+  0.0,
+  0.0
+);
+
 export const RAIL_GEOMETRY = new three.BoxGeometry(
   RAIL_SCALE_X,
   RAIL_SCALE_Y,
@@ -66,23 +81,12 @@ export const SIDES = {
   OFF_SCREEN: -35,
 };
 
-export const createRails = ({ side }) => {
+export const createRails = () => {
   const mesh = new three.Mesh(RAIL_GEOMETRY, RAIL_MATERIAL);
 
   const leftRailMatrix = new three.Matrix4();
-  if (side === SIDES.CENTER) {
-    leftRailMatrix.makeRotationFromEuler(
-      new three.Euler(0.0, 0.0, -RAIL_ROTATION)
-    );
-  }
   leftRailMatrix.setPosition(
-    new three.Vector3(
-      side === SIDES.CENTER
-        ? -HIGHWAY_SCALE_X / 2 - RAIL_OFFSET
-        : -HIGHWAY_SCALE_X / 2 - RAIL_SCALE_X / 2,
-      side === SIDES.CENTER ? RAIL_OFFSET : 0.0,
-      RAIL_POSITION_Z
-    )
+    new three.Vector3(0.0, 0.0, RAIL_POSITION_Z)
   );
   mesh.applyMatrix4(leftRailMatrix);
 
@@ -98,30 +102,15 @@ export const RAIL_JUDGE_MATERIAL = new three.MeshBasicMaterial({
   color: 0xffffff,
 });
 
-export const createRailJudge = ({ side }) => {
-  const mesh = new three.InstancedMesh(
-    RAIL_JUDGE_GEOMETRY,
-    RAIL_JUDGE_MATERIAL,
-    2
-  );
+export const createRailJudge = () => {
+  const mesh = new three.Mesh(RAIL_JUDGE_GEOMETRY, RAIL_JUDGE_MATERIAL);
 
   const leftRailJudgeMatrix = new three.Matrix4();
-  if (side === SIDES.CENTER) {
-    leftRailJudgeMatrix.makeRotationFromEuler(
-      new three.Euler(0.0, 0.0, -RAIL_ROTATION)
-    );
-  }
 
   leftRailJudgeMatrix.setPosition(
-    new three.Vector3(
-      side === SIDES.CENTER
-        ? -HIGHWAY_SCALE_X / 2 - RAIL_OFFSET
-        : -HIGHWAY_SCALE_X / 2 - RAIL_SCALE_X / 2,
-      side === SIDES.CENTER ? 0.003 + RAIL_OFFSET : 0.003,
-      JUDGE_POSITION_Z
-    )
+    new three.Vector3(0.0, 0.003, JUDGE_POSITION_Z)
   );
-  mesh.setMatrixAt(0, leftRailJudgeMatrix);
+  mesh.applyMatrix4(leftRailJudgeMatrix);
 
   return mesh;
 };
@@ -180,6 +169,13 @@ export const createRailDim = (column) => {
   return mesh;
 };
 
+// middle is just identity matrix - no rotation, no translation, no scale
+export const MIDDLE_M4 = new three.Matrix4();
+export const MIDDLE_POSITION = new three.Vector3();
+export const MIDDLE_QUATERNION = new three.Quaternion();
+export const MIDDLE_SCALE = new three.Vector3();
+MIDDLE_M4.decompose(MIDDLE_POSITION, MIDDLE_QUATERNION, MIDDLE_SCALE);
+
 // other planes
 export const LEFT_SIDE_M4 = (() => {
   const finalM4 = new three.Matrix4();
@@ -205,6 +201,15 @@ export const LEFT_SIDE_M4 = (() => {
   return finalM4;
 })();
 
+export const LEFT_SIDE_POSITION = new three.Vector3();
+export const LEFT_SIDE_QUATERNION = new three.Quaternion();
+export const LEFT_SIDE_SCALE = new three.Vector3();
+LEFT_SIDE_M4.decompose(
+  LEFT_SIDE_POSITION,
+  LEFT_SIDE_QUATERNION,
+  LEFT_SIDE_SCALE
+);
+
 export const RIGHT_SIDE_M4 = (() => {
   const finalM4 = new three.Matrix4();
   const rotationM4 = new three.Matrix4().makeRotationZ(RAIL_ROTATION);
@@ -228,6 +233,15 @@ export const RIGHT_SIDE_M4 = (() => {
   finalM4.multiplyMatrices(translationM4, rotationM4);
   return finalM4;
 })();
+
+export const RIGHT_SIDE_POSITION = new three.Vector3();
+export const RIGHT_SIDE_QUATERNION = new three.Quaternion();
+export const RIGHT_SIDE_SCALE = new three.Vector3();
+RIGHT_SIDE_M4.decompose(
+  RIGHT_SIDE_POSITION,
+  RIGHT_SIDE_QUATERNION,
+  RIGHT_SIDE_SCALE
+);
 
 export const LEFT_ON_DECK_M4 = (() => {
   const finalM4 = new three.Matrix4();
@@ -260,6 +274,14 @@ export const LEFT_ON_DECK_M4 = (() => {
   finalM4.multiplyMatrices(translationM4, rotationM4);
   return finalM4;
 })();
+export const LEFT_ON_DECK_POSITION = new three.Vector3();
+export const LEFT_ON_DECK_QUATERNION = new three.Quaternion();
+export const LEFT_ON_DECK_SCALE = new three.Vector3();
+LEFT_ON_DECK_M4.decompose(
+  LEFT_ON_DECK_POSITION,
+  LEFT_ON_DECK_QUATERNION,
+  LEFT_ON_DECK_SCALE
+);
 
 export const RIGHT_ON_DECK_M4 = (() => {
   const finalM4 = new three.Matrix4();
@@ -292,6 +314,14 @@ export const RIGHT_ON_DECK_M4 = (() => {
   finalM4.multiplyMatrices(translationM4, rotationM4);
   return finalM4;
 })();
+export const RIGHT_ON_DECK_POSITION = new three.Vector3();
+export const RIGHT_ON_DECK_QUATERNION = new three.Quaternion();
+export const RIGHT_ON_DECK_SCALE = new three.Vector3();
+RIGHT_ON_DECK_M4.decompose(
+  RIGHT_ON_DECK_POSITION,
+  RIGHT_ON_DECK_QUATERNION,
+  RIGHT_ON_DECK_SCALE
+);
 
 export const OFF_SCREEN_M4 = (() => {
   const finalM4 = new three.Matrix4().makeTranslation(100.0, 100.0, 100.0);

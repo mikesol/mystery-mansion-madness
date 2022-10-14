@@ -1,0 +1,2 @@
+mansion.jpeg filter=lfs diff=lfs merge=lfs -text
+halloween.mp3 filter=lfs diff=lfs merge=lfs -text
