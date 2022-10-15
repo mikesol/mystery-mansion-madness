@@ -14,6 +14,14 @@ const interpolate = (value, r1, r2) => {
     return (value - r1[0]) * (r2[1] - r2[0]) / (r1[1] - r1[0]) + r2[0];
 }
 
+const randomInRange = (min, max) => {
+    return Math.random() * (max - min) + min;
+}
+
+const randomElement = (xs) => {
+    return xs[Math.floor(Math.random() * xs.length)];
+}
+
 const main = () => {
     const gui = new GUI();
     const stats = new Stats();
@@ -32,20 +40,37 @@ const main = () => {
     light.position.set(0.0, 0.0, 10.0);
     scene.add(light);
 
-    const xs = [
-        -4.1, 0.0, 4.1
-    ];
-    const ys = [
-        4.1, 0.0, -4.1
-    ];
+    const gridLocations = [ -3.5, 0.0, 3.5 ];
     const noteInfos = [];
 
-    let timing = 1.0;
-    for (const x of xs) {
-        for (const y of ys) {
-            noteInfos.push({ timing, x, y, z: -5.0 });
-            timing += 0.20;
+    for (let timing = 1.0; timing < 30.0; timing += 0.50) {
+        const initialX = randomInRange(-5.0, 5.0);
+        const initialY = randomInRange(-5.0, 5.0);
+
+        let targetX = null;
+        let targetY = null;
+
+        while (true) {
+            targetX = randomElement(gridLocations);
+            targetY = randomElement(gridLocations);
+            const lastNote = noteInfos.at(-1);
+            if (lastNote === undefined) {
+                break;
+            }
+            if (lastNote.targetX !== targetX || lastNote.targetY !== targetY) {
+                break;
+            }
         }
+
+        noteInfos.push({
+            timing,
+            initialX,
+            initialY,
+            initialZ: -10.0,
+            targetX,
+            targetY,
+            targetZ: 0.0,
+        });
     }
 
     const { mesh: heavenlyBodiesMesh, notes: heavenlyBodiesInfos } = createHeavenlyBodies(noteInfos);
@@ -90,6 +115,7 @@ const main = () => {
     }
 
     const bufferVector3 = new three.Vector3();
+    const bufferColor = new three.Color();
     const heavenlyBodiesActive = new Deque();
 
     const renderLoop = () => {
@@ -111,10 +137,27 @@ const main = () => {
                 }
             }
 
-            for (const { timing, matrix, index } of heavenlyBodiesActive.toArray()) {
+            for (const { timing, matrix, index, initialX, initialY, initialZ, targetX, targetY, targetZ } of heavenlyBodiesActive.toArray()) {
+                const movementStart = timing - context.movementThreshold;
+
                 bufferVector3.setFromMatrixPosition(matrix);
-                bufferVector3.z = interpolate(elapsedTime, [timing - context.movementThreshold, timing], [-4.8, 0.0]);
+                bufferVector3.set(
+                    interpolate(elapsedTime, [movementStart, timing], [initialX, targetX]),
+                    interpolate(elapsedTime, [movementStart, timing], [initialY, targetY]),
+                    interpolate(elapsedTime, [movementStart, timing], [initialZ, targetZ]),
+                );
                 heavenlyBodiesMesh.setMatrixAt(index, matrix.setPosition(bufferVector3));
+
+                if (elapsedTime > timing + 0.075) {
+                    heavenlyBodiesMesh.setColorAt(index, bufferColor.setHex(0xFF0000));
+                    heavenlyBodiesMesh.instanceColor.needsUpdate = true;
+                } else if (elapsedTime > timing - 0.075) {
+                    heavenlyBodiesMesh.setColorAt(index, bufferColor.setHex(0x00FF00));
+                    heavenlyBodiesMesh.instanceColor.needsUpdate = true;
+                } else if (elapsedTime > timing - 0.1) {
+                    heavenlyBodiesMesh.setColorAt(index, bufferColor.setHex(0xFF0000));
+                    heavenlyBodiesMesh.instanceColor.needsUpdate = true;
+                }
             }
 
             while (true) {
@@ -123,7 +166,9 @@ const main = () => {
                     break;
                 }
                 if (elapsedTime > latestNote.timing + 0.1) {
-                    heavenlyBodiesActive.removeFront();
+                    const latestNote = heavenlyBodiesActive.removeFront();
+                    bufferVector3.set(0.0, 0.0, 20.0);
+                    heavenlyBodiesMesh.setMatrixAt(latestNote.index, latestNote.matrix.setPosition(bufferVector3));
                 } else {
                     break;
                 }

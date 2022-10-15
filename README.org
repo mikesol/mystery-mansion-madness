@@ -1,2 +1,34 @@
 #+title: cosmobeat
 #+author: purefunctor
+
+* Paths
+
+** Grid-based
+
+In the 3x3 grid-based path, heavenly bodies approach preset positions within the playing field. Notes can come from different directions but for the current proof-of-concept, they'll just be appearing from ~z=-5.0~ and ending up at around ~z=0.0~. This would make the proof of concept have the same gameplay format as jubeat, except more barebones and having a tighter social aspect.
+
+** Free-form
+
+In the free-form path, heavenly bodies approach random positions within the playing field. Notes can come from arbitrary positions but unlike the grid-based one, they'll be appearing from the back for now, until they reach ~z=0.0~. This would make the proof of concept have the same gameplay format as osu! except more barebones and having a tighter social aspect.
+
+* Tasks [2/5]
+
+** DONE Implement movement for grid-based gameplay
+
+Spawn notes in random locations at the back (~z=-5.0~), and then move them to the grid positions.
+
+** DONE Implement initial visual indicators for timing
+
+Change the colors of the heavenly bodies once they reach the threshold that they need to be hit.
+
+** TODO Implement movement for free-form gameplay
+
+Spawn notes in random locations and move them to random positions as well, taking care of collisions.
+
+** TODO Implement animated visual indicators for timing
+
+Implement "target locked" animations through meshes and add them to heavenly bodies or something.
+
+** TODO Implement barebones controls and scoring
+
+Self-explanatory, just re-add the raycaster logic, combo, and add basic relative scoring.
