@@ -3,15 +3,11 @@
 import * as three from "three";
 import { CHART_LENGTH } from "./halloween0.js";
 import {
-  HIGHWAY_SCALE_X,
   HIGHWAY_SCALE_X_BASE,
   HIGHWAY_SCALE_X_PADDING,
   HIGHWAY_SCALE_Y,
-  RAIL_OFFSET,
-  RAIL_SCALE_X,
   RAIL_SCALE_X_BASE,
   RAIL_SCALE_Y,
-  SIDES,
 } from "./plane.js";
 
 export const UNREACHABLE_POINT = 0.5;
@@ -20,7 +16,7 @@ export const TABLE_DENSITY_PER_SECOND = 10;
 export const LANE_NOTE_SCALE_X = HIGHWAY_SCALE_X_BASE / 4;
 export const LANE_NOTE_SCALE_Y = HIGHWAY_SCALE_Y;
 export const LANE_NOTE_SCALE_Z = 0.2;
-export const LANE_NOTE_POSITION_Y = 0.0001;
+export const LANE_NOTE_POSITION_Y = 0.001;
 export const LANE_NOTE_POSITION_Z = -4.8;
 export const LANE_NOTE_SPACE_BETWEEN = HIGHWAY_SCALE_X_PADDING / 5;
 const LANE_NOTE_GEOMETRY = () =>

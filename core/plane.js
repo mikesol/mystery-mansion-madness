@@ -2,6 +2,22 @@
 
 import * as three from "three";
 
+export const MULTIPLIER_SCALE_X = 0.5;
+export const MULTIPLIER_SCALE_Y = 0.001;
+export const MULTIPLIER_SCALE_Z = 0.5;
+export const MULTIPLIER_POSITION_X = 0.0;
+export const MULTIPLIER_POSITION_Y = 0.0005;
+export const MULTIPLIER_POSITION_Z = -1.0;
+export const MULTIPLIER_GEOMETRY = () =>
+  new three.BoxGeometry(MULTIPLIER_SCALE_X, MULTIPLIER_SCALE_Y, MULTIPLIER_SCALE_Z);
+export const MULTIPLIER_MATERIAL = ({multtxt}) =>
+  new three.MeshBasicMaterial({
+    color: 0xffffff,
+    map: multtxt,
+    transparent: true,
+    alphaMap: multtxt,
+  });
+
 export const HIGHWAY_SCALE_X_BASE = 1.0;
 export const HIGHWAY_SCALE_X_PADDING = 0.05;
 export const HIGHWAY_SCALE_X = HIGHWAY_SCALE_X_BASE + HIGHWAY_SCALE_X_PADDING;
@@ -22,6 +38,13 @@ export const createHighway = () => {
   mesh.position.set(HIGHWAY_POSITION_X, HIGHWAY_POSITION_Y, HIGHWAY_POSITION_Z);
   return mesh;
 };
+
+export const createMultiplier = ({multtxt}) => {
+  const mesh = new three.Mesh(MULTIPLIER_GEOMETRY(), MULTIPLIER_MATERIAL({multtxt}));
+  mesh.position.set(MULTIPLIER_POSITION_X, MULTIPLIER_POSITION_Y, MULTIPLIER_POSITION_Z);
+  return mesh;
+};
+
 
 export const JUDGE_SCALE_X = HIGHWAY_SCALE_X;
 export const JUDGE_SCALE_Y = HIGHWAY_SCALE_Y;

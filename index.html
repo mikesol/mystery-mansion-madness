@@ -3,11 +3,17 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="stylesheet" href="./index.css">
+    <link rel="stylesheet" href="./index.css" />
     <script type="module" src="/index.js" defer></script>
     <title>Joyride Core</title>
   </head>
   <body>
     <canvas id="joyride-canvas"></canvas>
+    <div class="absolute w-screen h-screen grid grid-cols-3 grid-rows-3 place-items-center">
+      <div class="col-start-2 col-span-1 row-start-2 row-span-1 place-items-center">
+        <div id="score-text" class="text-white text-center font-sans text-2xl"></div>
+        <div id="combo-text" class="text-white text-center font-sans text-2xl"></div>
+      </div>
+    </div>
   </body>
 </html>

@@ -2,14 +2,16 @@
 
 import GUI from "lil-gui";
 import * as eruda from "eruda";
+import $ from "jquery";
 import Stats from "stats.js";
 import * as three from "three";
-import {
-  CSS2DRenderer,
-  CSS2DObject,
-} from "three/addons/renderers/CSS2DRenderer.js";
 import { createCamera } from "./camera.js";
 import { SPOOKY_LANES } from "./core/halloween0.js";
+import oneX from "./assets/1xalpha.png";
+import twoX from "./assets/2xalpha.png";
+import threeX from "./assets/3xalpha.png";
+import fiveX from "./assets/5xalpha.png";
+import eightX from "./assets/8xalpha.png";
 import {
   createLaneNotes,
   createRailNotes,
@@ -46,6 +48,7 @@ import {
   RAIL_CENTER_POSITION,
   RAIL_ROTATION,
   OFF_SCREEN_M4,
+  createMultiplier,
 } from "./core/plane.js";
 import {
   createLaneTouchArea,
@@ -58,7 +61,7 @@ import halloweenUrl from "./halloween.mp3";
 eruda.init();
 
 const negMod = (x, n) => ((x % n) + n) % n;
-const lerpyMcLerpLerp = (a,b,t) => a * (1-t) + b * t;
+const lerpyMcLerpLerp = (a, b, t) => a * (1 - t) + b * t;
 
 const SHIFT_INSTRUCTION = {
   GO_LEFT: 0,
@@ -67,7 +70,7 @@ const SHIFT_INSTRUCTION = {
 
 const ROTATION_DURATION = 0.6;
 
-const makeGroup = ({ scene, side, groupId }) => {
+const makeGroup = ({ scene, side, groupId, multtxt }) => {
   // thin stuff out
   const laneNotes = SPOOKY_LANES.filter(
     (_, i) => i % 8 !== groupId && (i + 3) % 8 !== groupId
@@ -99,6 +102,8 @@ const makeGroup = ({ scene, side, groupId }) => {
     highway.material.opacity = SIDE_LANE_OPACITY;
   }
   sideGroup.add(highway);
+  const multiplier = createMultiplier({ multtxt });
+  sideGroup.add(multiplier);
   const judge = createJudge();
   sideGroup.add(judge);
   const rails = createRails({ side });
@@ -154,60 +159,78 @@ const makeGroup = ({ scene, side, groupId }) => {
 };
 
 const main = () => {
+  // dev
   const gui = new GUI();
   const stats = new Stats();
   stats.showPanel(0);
   document.body.appendChild(stats.dom);
+
+  // textures
+  const loader = new three.TextureLoader();
+  const t1x = loader.load(oneX);
+  const t2x = loader.load(twoX);
+  const t3x = loader.load(threeX);
+  const t5x = loader.load(fiveX);
+  const t8x = loader.load(eightX);
+
+  // canvas
   const canvas = document.getElementById("joyride-canvas");
+  // renderer
   const renderer = new three.WebGLRenderer({ canvas, alpha: true });
-  const cssRenderer = new CSS2DRenderer();
-  cssRenderer.setSize(window.innerWidth, window.innerHeight);
-  cssRenderer.domElement.style.position = "absolute";
-  cssRenderer.domElement.style.top = "0px";
-  document.body.appendChild(cssRenderer.domElement);
+  // camera
   const camera = createCamera(canvas.clientWidth / canvas.clientHeight);
+  //raycaster
   const raycaster = new three.Raycaster();
 
+  // scene
   const scene = new three.Scene();
 
   const ALL_GROUPS = [
     makeGroup({
       scene,
+      multtxt: t1x,
       side: SIDES.CENTER,
       groupId: 0,
     }),
     makeGroup({
       scene,
+      multtxt: t2x,
       side: SIDES.LEFT_SIDE,
       groupId: 1,
     }),
     makeGroup({
       scene,
+      multtxt: t3x,
       side: SIDES.LEFT_ON_DECK,
       groupId: 2,
     }),
     makeGroup({
       scene,
+      multtxt: t5x,
       side: SIDES.OFF_SCREEN,
       groupId: 3,
     }),
     makeGroup({
       scene,
+      multtxt: t8x,
       side: SIDES.OFF_SCREEN,
       groupId: 4,
     }),
     makeGroup({
       scene,
+      multtxt: t5x,
       side: SIDES.OFF_SCREEN,
       groupId: 5,
     }),
     makeGroup({
       scene,
+      multtxt: t3x,
       side: SIDES.RIGHT_ON_DECK,
       groupId: 6,
     }),
     makeGroup({
       scene,
+      multtxt: t2x,
       side: SIDES.RIGHT_SIDE,
       groupId: 7,
     }),
@@ -236,17 +259,8 @@ const main = () => {
     scene.add(touchArea);
   }
 
-  const scoreSpan = document.createElement("span");
-  scoreSpan.id = "score-text";
-  scoreSpan.textContent = "...";
-  const scoreLabel = new CSS2DObject(scoreSpan);
-  scene.add(scoreLabel);
-
-  const comboSpan = document.createElement("span");
-  comboSpan.id = "combo-text";
-  comboSpan.textContent = "0";
-  const comboLabel = new CSS2DObject(comboSpan);
-  scene.add(comboLabel);
+  const scoreSpan = $("#score-text");
+  const comboSpan = $("#combo-text");
 
   let audioContext = null;
   let beginTime = null;
@@ -318,7 +332,6 @@ const main = () => {
     const needResize = canvas.width !== width || canvas.height !== height;
     if (needResize) {
       renderer.setSize(width, height, false);
-      cssRenderer.setSize(window.innerWidth, window.innerHeight);
       const canvas = renderer.domElement;
       camera.aspect = canvas.clientWidth / canvas.clientHeight;
       camera.updateProjectionMatrix();
@@ -338,7 +351,9 @@ const main = () => {
     if (dir === SHIFT_INSTRUCTION.GO_LEFT) {
       // do the non-animating shifts
       //// right on deck goes to not visible
-      ALL_GROUPS[negMod(previousGroupIndex - 2, 8)].sideGroup.applyMatrix4(OFF_SCREEN_M4);
+      ALL_GROUPS[negMod(previousGroupIndex - 2, 8)].sideGroup.applyMatrix4(
+        OFF_SCREEN_M4
+      );
       //// left-most not visible goes to left on-deck
       ALL_GROUPS[negMod(previousGroupIndex + 3, 8)].sideGroup.applyMatrix4(
         LEFT_ON_DECK_M4
@@ -397,7 +412,9 @@ const main = () => {
     } else {
       // do the non-animating shifts
       //// left on deck goes to not visible
-      ALL_GROUPS[negMod(previousGroupIndex + 2, 8)].sideGroup.applyMatrix4(OFF_SCREEN_M4);
+      ALL_GROUPS[negMod(previousGroupIndex + 2, 8)].sideGroup.applyMatrix4(
+        OFF_SCREEN_M4
+      );
       //// right-most not visible goes to right on-deck
       ALL_GROUPS[negMod(previousGroupIndex - 3, 8)].sideGroup.applyMatrix4(
         RIGHT_ON_DECK_M4
@@ -504,18 +521,18 @@ const main = () => {
           const untilPerfect = Math.abs(elapsedTime - latestLaneNote.timing);
           if (untilPerfect < 0.016) {
             comboCount += 1;
-            scoreSpan.textContent = "Perfect!";
-            comboSpan.textContent = comboCount;
+            scoreSpan.text("Perfect!");
+            comboSpan.text(comboCount);
             latestLaneNote.hasHit = true;
           } else if (untilPerfect < 0.032) {
             comboCount += 1;
-            scoreSpan.textContent = "Nice";
-            comboSpan.textContent = comboCount;
+            scoreSpan.text("Nice");
+            comboSpan.text(comboCount);
             latestLaneNote.hasHit = true;
           } else if (untilPerfect > 0.032) {
             comboCount += 1;
-            scoreSpan.textContent = "Near";
-            comboSpan.textContent = comboCount;
+            scoreSpan.text("Almost");
+            comboSpan.text(comboCount);
             latestLaneNote.hasHit = true;
           }
         }
@@ -530,9 +547,8 @@ const main = () => {
           elapsedTime > latestRailNote.timing - 0.1 &&
           elapsedTime < latestRailNote.timing + 0.1
         ) {
-          scoreSpan.textContent =
-            touchIndex === 4 ? "Shift Left!" : "Shift Right!";
-          comboSpan.textContent = "";
+          scoreSpan.text(touchIndex === 4 ? "Shift Left!" : "Shift Right!");
+          comboSpan.text("");
           latestRailNote.hasHit = true;
           doShift(
             touchIndex === 4
@@ -566,12 +582,12 @@ const main = () => {
           if (rotationAnimationDirection === SHIFT_INSTRUCTION.GO_LEFT) {
             // something to the far off right should be invisible
             ALL_GROUPS[negMod(currentGroupIndex - 2, 8)].visible = false;
-            mainGroup.highway.material.opacity = 1.0
+            mainGroup.highway.material.opacity = 1.0;
             rightSideGroup.highway.material.opacity = SIDE_LANE_OPACITY;
           } else {
             // something to the far off left should be invisible
             ALL_GROUPS[negMod(currentGroupIndex + 2, 8)].visible = false;
-            mainGroup.highway.material.opacity = 1.0
+            mainGroup.highway.material.opacity = 1.0;
             leftSideGroup.highway.material.opacity = SIDE_LANE_OPACITY;
           }
           // then set everything to false and empty the targets
@@ -579,19 +595,34 @@ const main = () => {
           rotationAnimationStartsAt = undefined;
           currentRotationAnimationTargets.length = 0;
         } else {
-          const NORMALIZED_TIME = (elapsedTime - rotationAnimationStartsAt) / ROTATION_DURATION;
+          const NORMALIZED_TIME =
+            (elapsedTime - rotationAnimationStartsAt) / ROTATION_DURATION;
           if (rotationAnimationDirection === SHIFT_INSTRUCTION.GO_LEFT) {
-            mainGroup.highway.material.opacity = lerpyMcLerpLerp(SIDE_LANE_OPACITY, 1.0, NORMALIZED_TIME);
-            rightSideGroup.highway.material.opacity = lerpyMcLerpLerp(1.0, SIDE_LANE_OPACITY, NORMALIZED_TIME);
+            mainGroup.highway.material.opacity = lerpyMcLerpLerp(
+              SIDE_LANE_OPACITY,
+              1.0,
+              NORMALIZED_TIME
+            );
+            rightSideGroup.highway.material.opacity = lerpyMcLerpLerp(
+              1.0,
+              SIDE_LANE_OPACITY,
+              NORMALIZED_TIME
+            );
           } else {
-            mainGroup.highway.material.opacity = lerpyMcLerpLerp(SIDE_LANE_OPACITY, 1.0, NORMALIZED_TIME);
-            leftSideGroup.highway.material.opacity = lerpyMcLerpLerp(1.0, SIDE_LANE_OPACITY, NORMALIZED_TIME);
+            mainGroup.highway.material.opacity = lerpyMcLerpLerp(
+              SIDE_LANE_OPACITY,
+              1.0,
+              NORMALIZED_TIME
+            );
+            leftSideGroup.highway.material.opacity = lerpyMcLerpLerp(
+              1.0,
+              SIDE_LANE_OPACITY,
+              NORMALIZED_TIME
+            );
           }
           for (const target of currentRotationAnimationTargets) {
             target.target.quaternion.copy(
-              target.qstart
-                .clone()
-                .slerp(target.qend, NORMALIZED_TIME)
+              target.qstart.clone().slerp(target.qend, NORMALIZED_TIME)
             );
             target.target.position.copy(
               target.pstart.clone().lerp(target.pend, NORMALIZED_TIME)
@@ -616,8 +647,8 @@ const main = () => {
           !mainGroup.laneNoteInfo[activeLanes[i]].hasHit
         ) {
           comboCount = 0;
-          scoreSpan.textContent = "Miss!";
-          comboSpan.textContent = comboCount;
+          scoreSpan.text("Miss!");
+          comboSpan.text(comboCount);
           break;
         }
       }
@@ -627,7 +658,6 @@ const main = () => {
 
     stats.begin();
     renderer.render(scene, camera);
-    cssRenderer.render(scene, camera);
     stats.end();
 
     requestAnimationFrame(renderLoop);
