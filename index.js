@@ -97,7 +97,6 @@ const makeGroup = ({ scene, side, groupId, multtxt }) => {
   railGroup.add(railNoteMesh);
 
   const highway = createHighway();
-  highway.material.transparent = true;
   if (side !== SIDES.CENTER) {
     highway.material.opacity = SIDE_LANE_OPACITY;
   }

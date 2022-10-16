@@ -31,6 +31,7 @@ export const HIGHWAY_GEOMETRY = () =>
 export const HIGHWAY_MATERIAL = () =>
   new three.MeshBasicMaterial({
     color: 0x353436,
+    transparent: true
   });
 
 export const createHighway = () => {
