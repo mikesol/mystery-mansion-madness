@@ -15,7 +15,7 @@ import threeX from "./assets/3xalpha.png";
 import fiveX from "./assets/5xalpha.png";
 import eightX from "./assets/8xalpha.png";
 import Swal from "sweetalert2";
-import * as ClipboardJS from "clipboard";
+import ClipboardJS from "clipboard";
 
 import {
   createLaneNotes,
@@ -180,7 +180,11 @@ const main = async () => {
     eruda.init();
   }
 
-  // top-level lets
+  // top-level lets and consts
+  const score = {
+    score: 0,
+    highestCombo: 0,
+  };
   let comboCount = 0;
   let audioContext = null;
   let beginTime = null;
@@ -211,12 +215,6 @@ const main = async () => {
     };
 
   const doGame = async ({ audioDataPromise }) => {
-    // score
-    const score = {
-      score: 0,
-      highestCombo: 0,
-    };
-
     // textures
     const loader = new three.TextureLoader();
     const [t1x, t2x, t3x, t5x, t8x] = await Promise.all([
@@ -256,7 +254,6 @@ const main = async () => {
         scene,
         multtxt: t3x,
         side: SIDES.LEFT_ON_DECK,
-        groupId: 2,
         groupId: GROUPS.MID_LEFT,
       }),
       makeGroup({
@@ -322,11 +319,6 @@ const main = async () => {
 
     const context = {
       movementThreshold: 1.0,
-      toggleDims: function () {
-        for (const dim of dims) {
-          dim.visible = !dim.visible;
-        }
-      },
       toggleFullScreen: function () {
         if (document.fullscreenElement !== null) {
           document.exitFullscreen();
@@ -337,11 +329,14 @@ const main = async () => {
       togglePlayBack: togglePlayBack({ audioDataPromise }),
     };
 
-    gui.add(context, "toggleDims").name("Toggle Dims");
-    gui.add(context, "toggleFullScreen").name("Toggle Full Screen");
-    gui.add(context, "movementThreshold", 0.5, 1.5).name("Movement Threshold");
-    gui.add(context, "togglePlayBack").name("Toggle Playback");
-
+    if (import.meta.env.DEV) {
+      gui.add(context, "toggleDims").name("Toggle Dims");
+      gui.add(context, "toggleFullScreen").name("Toggle Full Screen");
+      gui
+        .add(context, "movementThreshold", 0.5, 1.5)
+        .name("Movement Threshold");
+      gui.add(context, "togglePlayBack").name("Toggle Playback");
+    }
     const tryResizeRendererToDisplay = () => {
       const canvas = renderer.domElement;
       const pixelRatio = window.devicePixelRatio;
@@ -697,6 +692,7 @@ const main = async () => {
   const introScreen = $("#intro-screen");
   const instructionScreen = $("#instruction-screen");
   const scoreGrid = $("#score-grid");
+  const introSpinner = $("#loading-spinner");
   // do not await until needed
   const audioDataPromise = getAudioData();
   // routing
@@ -728,6 +724,7 @@ const main = async () => {
           await togglePlayBack({ audioDataPromise })();
         });
       });
+      introSpinner.addClass("hidden");
       introScreen.removeClass("hidden");
     } else if (routing.hash.substring(0, 4) === "#/r/") {
       instructionScreen.addClass("hidden");
