@@ -5,6 +5,7 @@ import * as eruda from "eruda";
 import $ from "jquery";
 import Stats from "stats.js";
 import * as three from "three";
+import {GROUPS} from "./core/groups";
 import { createCamera } from "./camera.js";
 import { SPOOKY_LANES } from "./core/halloween0.js";
 import oneX from "./assets/1xalpha.png";
@@ -57,6 +58,7 @@ import {
   RAIL_TOUCH_AREA_COLUMN,
 } from "./core/touch.js";
 import halloweenUrl from "./halloween.mp3";
+import { GREAT_MULTIPLIER, OK_MULTIPLIER, PERFECT_MULTIPLIER, SCORE_MULTIPLIERS } from "./core/scoring";
 
 eruda.init();
 
@@ -148,6 +150,7 @@ const makeGroup = ({ scene, side, groupId, multtxt }) => {
     sideGroup,
     railGroup,
     highway,
+    groupId,
     laneNoteMesh,
     laneNoteInfo,
     laneNoteTable,
@@ -163,6 +166,12 @@ const main = () => {
   const stats = new Stats();
   stats.showPanel(0);
   document.body.appendChild(stats.dom);
+
+  // score
+  const score = {
+    score: 0,
+    highestCombo: 0
+  }
 
   // textures
   const loader = new three.TextureLoader();
@@ -189,49 +198,50 @@ const main = () => {
       scene,
       multtxt: t1x,
       side: SIDES.CENTER,
-      groupId: 0,
+      groupId: GROUPS.LOWEST,
     }),
     makeGroup({
       scene,
       multtxt: t2x,
       side: SIDES.LEFT_SIDE,
-      groupId: 1,
+      groupId: GROUPS.LOW_LEFT,
     }),
     makeGroup({
       scene,
       multtxt: t3x,
       side: SIDES.LEFT_ON_DECK,
       groupId: 2,
+      groupId: GROUPS.MID_LEFT,
     }),
     makeGroup({
       scene,
       multtxt: t5x,
       side: SIDES.OFF_SCREEN,
-      groupId: 3,
+      groupId: GROUPS.HIGH_LEFT,
     }),
     makeGroup({
       scene,
       multtxt: t8x,
       side: SIDES.OFF_SCREEN,
-      groupId: 4,
+      groupId: GROUPS.HIGHEST,
     }),
     makeGroup({
       scene,
       multtxt: t5x,
       side: SIDES.OFF_SCREEN,
-      groupId: 5,
+      groupId: GROUPS.HIGH_RIGHT,
     }),
     makeGroup({
       scene,
       multtxt: t3x,
       side: SIDES.RIGHT_ON_DECK,
-      groupId: 6,
+      groupId: GROUPS.MID_RIGHT,
     }),
     makeGroup({
       scene,
       multtxt: t2x,
       side: SIDES.RIGHT_SIDE,
-      groupId: 7,
+      groupId: GROUPS.LOW_RIGHT,
     }),
   ];
 
@@ -260,6 +270,7 @@ const main = () => {
 
   const scoreSpan = $("#score-text");
   const comboSpan = $("#combo-text");
+  const realScore = $("#real-score");
 
   let audioContext = null;
   let beginTime = null;
@@ -518,22 +529,30 @@ const main = () => {
           elapsedTime < latestLaneNote.timing + 0.1
         ) {
           const untilPerfect = Math.abs(elapsedTime - latestLaneNote.timing);
+          let scoreMultiplier = undefined;
           if (untilPerfect < 0.016) {
             comboCount += 1;
+            scoreMultiplier
             scoreSpan.text("Perfect!");
             comboSpan.text(comboCount);
             latestLaneNote.hasHit = true;
+            scoreMultiplier = PERFECT_MULTIPLIER;
           } else if (untilPerfect < 0.032) {
             comboCount += 1;
             scoreSpan.text("Nice");
             comboSpan.text(comboCount);
             latestLaneNote.hasHit = true;
-          } else if (untilPerfect > 0.032) {
+            scoreMultiplier = GREAT_MULTIPLIER;
+          } else {
             comboCount += 1;
             scoreSpan.text("Almost");
             comboSpan.text(comboCount);
             latestLaneNote.hasHit = true;
+            scoreMultiplier = OK_MULTIPLIER;
           }
+          score.score += scoreMultiplier * (1 + comboCount) * SCORE_MULTIPLIERS[mainGroup.groupId];
+          score.highestCombo = Math.max(score.highestCombo, comboCount);
+          realScore.text(score.score.toFixed(1));
         }
         const latestRailNote =
           touchIndex === 4 && activeRails[0] !== undefined

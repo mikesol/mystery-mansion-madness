@@ -1,4 +1,4 @@
-export const GROUP_IDS = {
+export const GROUPS = {
   LOWEST: 0,
   LOW_LEFT: 1,
   MID_LEFT: 2,
