@@ -21,11 +21,14 @@
     "@capacitor/android": "^4.3.0",
     "@capacitor/core": "^4.3.0",
     "@capacitor/ios": "^4.3.0",
+    "clipboard": "^2.0.11",
     "double-ended-queue": "2.1.0-0",
     "eruda": "^2.5.0",
     "firebase": "^9.12.1",
+    "flowbite": "^1.5.3",
     "jquery": "^3.6.1",
     "lil-gui": "^0.17.0",
+    "sweetalert2": "^11.5.2",
     "three": "^0.144.0"
   }
 }

@@ -2,10 +2,11 @@
 
 import GUI from "lil-gui";
 import * as eruda from "eruda";
+import "flowbite";
 import $ from "jquery";
 import Stats from "stats.js";
 import * as three from "three";
-import {GROUPS} from "./core/groups";
+import { GROUPS } from "./core/groups";
 import { createCamera } from "./camera.js";
 import { SPOOKY_LANES } from "./core/halloween0.js";
 import oneX from "./assets/1xalpha.png";
@@ -13,6 +14,9 @@ import twoX from "./assets/2xalpha.png";
 import threeX from "./assets/3xalpha.png";
 import fiveX from "./assets/5xalpha.png";
 import eightX from "./assets/8xalpha.png";
+import Swal from "sweetalert2";
+import * as ClipboardJS from "clipboard";
+
 import {
   createLaneNotes,
   createRailNotes,
@@ -57,10 +61,13 @@ import {
   LANE_TOUCH_AREA_COLUMN,
   RAIL_TOUCH_AREA_COLUMN,
 } from "./core/touch.js";
-import halloweenUrl from "./halloween.mp3";
-import { GREAT_MULTIPLIER, OK_MULTIPLIER, PERFECT_MULTIPLIER, SCORE_MULTIPLIERS } from "./core/scoring";
-
-eruda.init();
+import {
+  GREAT_MULTIPLIER,
+  OK_MULTIPLIER,
+  PERFECT_MULTIPLIER,
+  SCORE_MULTIPLIERS,
+} from "./core/scoring";
+import { getAudioData } from "./io/soundfile";
 
 const negMod = (x, n) => ((x % n) + n) % n;
 const lerpyMcLerpLerp = (a, b, t) => a * (1 - t) + b * t;
@@ -160,528 +167,585 @@ const makeGroup = ({ scene, side, groupId, multtxt }) => {
   };
 };
 
-const main = () => {
+const main = async () => {
   // dev
   const gui = new GUI();
+  if (import.meta.env.PROD) {
+    gui.hide();
+  }
   const stats = new Stats();
   stats.showPanel(0);
-  document.body.appendChild(stats.dom);
-
-  // score
-  const score = {
-    score: 0,
-    highestCombo: 0
+  if (import.meta.env.DEV) {
+    document.body.appendChild(stats.dom);
+    eruda.init();
   }
 
-  // textures
-  const loader = new three.TextureLoader();
-  const t1x = loader.load(oneX);
-  const t2x = loader.load(twoX);
-  const t3x = loader.load(threeX);
-  const t5x = loader.load(fiveX);
-  const t8x = loader.load(eightX);
-
-  // canvas
-  const canvas = document.getElementById("joyride-canvas");
-  // renderer
-  const renderer = new three.WebGLRenderer({ canvas, alpha: true });
-  // camera
-  const camera = createCamera(canvas.clientWidth / canvas.clientHeight);
-  //raycaster
-  const raycaster = new three.Raycaster();
-
-  // scene
-  const scene = new three.Scene();
-
-  const ALL_GROUPS = [
-    makeGroup({
-      scene,
-      multtxt: t1x,
-      side: SIDES.CENTER,
-      groupId: GROUPS.LOWEST,
-    }),
-    makeGroup({
-      scene,
-      multtxt: t2x,
-      side: SIDES.LEFT_SIDE,
-      groupId: GROUPS.LOW_LEFT,
-    }),
-    makeGroup({
-      scene,
-      multtxt: t3x,
-      side: SIDES.LEFT_ON_DECK,
-      groupId: 2,
-      groupId: GROUPS.MID_LEFT,
-    }),
-    makeGroup({
-      scene,
-      multtxt: t5x,
-      side: SIDES.OFF_SCREEN,
-      groupId: GROUPS.HIGH_LEFT,
-    }),
-    makeGroup({
-      scene,
-      multtxt: t8x,
-      side: SIDES.OFF_SCREEN,
-      groupId: GROUPS.HIGHEST,
-    }),
-    makeGroup({
-      scene,
-      multtxt: t5x,
-      side: SIDES.OFF_SCREEN,
-      groupId: GROUPS.HIGH_RIGHT,
-    }),
-    makeGroup({
-      scene,
-      multtxt: t3x,
-      side: SIDES.RIGHT_ON_DECK,
-      groupId: GROUPS.MID_RIGHT,
-    }),
-    makeGroup({
-      scene,
-      multtxt: t2x,
-      side: SIDES.RIGHT_SIDE,
-      groupId: GROUPS.LOW_RIGHT,
-    }),
-  ];
-
-  const currentRotationAnimationTargets = [];
-
-  let currentGroupIndex = 0;
-  let inRotationAnimation = false;
-  let rotationAnimationDirection = undefined;
-  let rotationAnimationStartsAt = undefined;
-  let mainGroup = ALL_GROUPS[0];
-  let leftSideGroup = ALL_GROUPS[1];
-  let rightSideGroup = ALL_GROUPS[7];
-
-  const touchAreas = [
-    createLaneTouchArea(LANE_TOUCH_AREA_COLUMN.FAR_LEFT),
-    createLaneTouchArea(LANE_TOUCH_AREA_COLUMN.NEAR_LEFT),
-    createLaneTouchArea(LANE_TOUCH_AREA_COLUMN.NEAR_RIGHT),
-    createLaneTouchArea(LANE_TOUCH_AREA_COLUMN.FAR_RIGHT),
-    createRailTouchArea(RAIL_TOUCH_AREA_COLUMN.LEFT),
-    createRailTouchArea(RAIL_TOUCH_AREA_COLUMN.RIGHT),
-  ];
-
-  for (const touchArea of touchAreas) {
-    scene.add(touchArea);
-  }
-
-  const scoreSpan = $("#score-text");
-  const comboSpan = $("#combo-text");
-  const realScore = $("#real-score");
-
+  // top-level lets
+  let comboCount = 0;
   let audioContext = null;
   let beginTime = null;
   let isPlaying = false;
-  let comboCount = 0;
 
-  const context = {
-    movementThreshold: 1.0,
-    toggleDims: function () {
-      for (const dim of dims) {
-        dim.visible = !dim.visible;
-      }
-    },
-    toggleFullScreen: function () {
-      if (document.fullscreenElement !== null) {
-        document.exitFullscreen();
-      } else {
-        document.documentElement.requestFullscreen();
-      }
-    },
-    togglePlayBack: function () {
+  const togglePlayBack =
+    ({ audioDataPromise }) =>
+    async () => {
       if (audioContext) {
         audioContext.close();
       }
       audioContext = new AudioContext();
-      /////
-      function getData() {
-        const source = audioContext.createBufferSource();
-        const request = new XMLHttpRequest();
+      const incoming = await audioDataPromise;
 
-        request.open("GET", halloweenUrl, true);
+      audioContext.decodeAudioData(
+        incoming,
+        (buffer) => {
+          const source = audioContext.createBufferSource();
+          source.buffer = buffer;
+          source.connect(audioContext.destination);
+          source.start(audioContext.currentTime);
+          beginTime = audioContext.currentTime;
+          isPlaying = true;
+        },
 
-        request.responseType = "arraybuffer";
+        (e) => console.error(`Error with decoding audio data: ${e.err}`)
+      );
+    };
 
-        request.onload = () => {
-          const audioData = request.response;
+  const doGame = async ({ audioDataPromise }) => {
+    // score
+    const score = {
+      score: 0,
+      highestCombo: 0,
+    };
 
-          audioContext.decodeAudioData(
-            audioData,
-            (buffer) => {
-              source.buffer = buffer;
-              source.connect(audioContext.destination);
-              source.start(audioContext.currentTime);
-              beginTime = audioContext.currentTime;
-              isPlaying = true;
-            },
+    // textures
+    const loader = new three.TextureLoader();
+    const [t1x, t2x, t3x, t5x, t8x] = await Promise.all([
+      loader.loadAsync(oneX),
+      loader.loadAsync(twoX),
+      loader.loadAsync(threeX),
+      loader.loadAsync(fiveX),
+      loader.loadAsync(eightX),
+    ]);
 
-            (e) => console.error(`Error with decoding audio data: ${e.err}`)
-          );
-        };
+    // canvas
+    const canvas = document.getElementById("joyride-canvas");
+    // renderer
+    const renderer = new three.WebGLRenderer({ canvas, alpha: true });
+    // camera
+    const camera = createCamera(canvas.clientWidth / canvas.clientHeight);
+    //raycaster
+    const raycaster = new three.Raycaster();
 
-        request.send();
-      }
-      getData();
-      /////
-    },
-  };
+    // scene
+    const scene = new three.Scene();
 
-  gui.add(context, "toggleDims").name("Toggle Dims");
-  gui.add(context, "toggleFullScreen").name("Toggle Full Screen");
-  gui.add(context, "movementThreshold", 0.5, 1.5).name("Movement Threshold");
-  gui.add(context, "togglePlayBack").name("Toggle Playback");
+    const ALL_GROUPS = [
+      makeGroup({
+        scene,
+        multtxt: t1x,
+        side: SIDES.CENTER,
+        groupId: GROUPS.LOWEST,
+      }),
+      makeGroup({
+        scene,
+        multtxt: t2x,
+        side: SIDES.LEFT_SIDE,
+        groupId: GROUPS.LOW_LEFT,
+      }),
+      makeGroup({
+        scene,
+        multtxt: t3x,
+        side: SIDES.LEFT_ON_DECK,
+        groupId: 2,
+        groupId: GROUPS.MID_LEFT,
+      }),
+      makeGroup({
+        scene,
+        multtxt: t5x,
+        side: SIDES.OFF_SCREEN,
+        groupId: GROUPS.HIGH_LEFT,
+      }),
+      makeGroup({
+        scene,
+        multtxt: t8x,
+        side: SIDES.OFF_SCREEN,
+        groupId: GROUPS.HIGHEST,
+      }),
+      makeGroup({
+        scene,
+        multtxt: t5x,
+        side: SIDES.OFF_SCREEN,
+        groupId: GROUPS.HIGH_RIGHT,
+      }),
+      makeGroup({
+        scene,
+        multtxt: t3x,
+        side: SIDES.RIGHT_ON_DECK,
+        groupId: GROUPS.MID_RIGHT,
+      }),
+      makeGroup({
+        scene,
+        multtxt: t2x,
+        side: SIDES.RIGHT_SIDE,
+        groupId: GROUPS.LOW_RIGHT,
+      }),
+    ];
 
-  const tryResizeRendererToDisplay = () => {
-    const canvas = renderer.domElement;
-    const pixelRatio = window.devicePixelRatio;
-    const width = (canvas.clientWidth * pixelRatio) | 0;
-    const height = (canvas.clientHeight * pixelRatio) | 0;
-    const needResize = canvas.width !== width || canvas.height !== height;
-    if (needResize) {
-      renderer.setSize(width, height, false);
-      const canvas = renderer.domElement;
-      camera.aspect = canvas.clientWidth / canvas.clientHeight;
-      camera.updateProjectionMatrix();
+    const currentRotationAnimationTargets = [];
+
+    let currentGroupIndex = 0;
+    let inRotationAnimation = false;
+    let rotationAnimationDirection = undefined;
+    let rotationAnimationStartsAt = undefined;
+    let mainGroup = ALL_GROUPS[0];
+    let leftSideGroup = ALL_GROUPS[1];
+    let rightSideGroup = ALL_GROUPS[7];
+
+    const touchAreas = [
+      createLaneTouchArea(LANE_TOUCH_AREA_COLUMN.FAR_LEFT),
+      createLaneTouchArea(LANE_TOUCH_AREA_COLUMN.NEAR_LEFT),
+      createLaneTouchArea(LANE_TOUCH_AREA_COLUMN.NEAR_RIGHT),
+      createLaneTouchArea(LANE_TOUCH_AREA_COLUMN.FAR_RIGHT),
+      createRailTouchArea(RAIL_TOUCH_AREA_COLUMN.LEFT),
+      createRailTouchArea(RAIL_TOUCH_AREA_COLUMN.RIGHT),
+    ];
+
+    for (const touchArea of touchAreas) {
+      scene.add(touchArea);
     }
-  };
 
-  const pointerBuffer = new three.Vector2();
+    $("#intro-screen").addClass("hidden");
+    $("#score-grid").removeClass("hidden");
+    const scoreSpan = $("#score-text");
+    const comboSpan = $("#combo-text");
+    const realScore = $("#real-score");
 
-  const doShift = (dir) => {
-    const previousGroupIndex = currentGroupIndex;
-    currentGroupIndex = negMod(
-      dir === SHIFT_INSTRUCTION.GO_LEFT
-        ? currentGroupIndex + 1
-        : currentGroupIndex - 1,
-      8
-    );
-    if (dir === SHIFT_INSTRUCTION.GO_LEFT) {
-      // do the non-animating shifts
-      //// right on deck goes to not visible
-      ALL_GROUPS[negMod(previousGroupIndex - 2, 8)].sideGroup.applyMatrix4(
-        OFF_SCREEN_M4
-      );
-      //// left-most not visible goes to left on-deck
-      ALL_GROUPS[negMod(previousGroupIndex + 3, 8)].sideGroup.applyMatrix4(
-        LEFT_ON_DECK_M4
-      );
-      //// set the visibility of left-on-deck to true
-      ALL_GROUPS[negMod(previousGroupIndex + 2, 8)].sideGroup.visible = true;
-      //// set the animation targets
-      ////// set left on deck to left
-      currentRotationAnimationTargets.push({
-        target: ALL_GROUPS[negMod(previousGroupIndex + 2, 8)].sideGroup,
-        qstart: LEFT_ON_DECK_QUATERNION,
-        qend: LEFT_SIDE_QUATERNION,
-        pstart: LEFT_ON_DECK_POSITION,
-        pend: LEFT_SIDE_POSITION,
-      });
-      ////// set left to main
-      currentRotationAnimationTargets.push({
-        target: ALL_GROUPS[negMod(previousGroupIndex + 1, 8)].sideGroup,
-        qstart: LEFT_SIDE_QUATERNION,
-        qend: MIDDLE_QUATERNION,
-        pstart: LEFT_SIDE_POSITION,
-        pend: MIDDLE_POSITION,
-      });
-      ////// set left rail to tilted
-      currentRotationAnimationTargets.push({
-        target: ALL_GROUPS[negMod(previousGroupIndex + 1, 8)].railGroup,
-        qstart: RAIL_SIDE_QUTERNION,
-        qend: RAIL_CENTER_QUTERNION,
-        pstart: RAIL_SIDE_POSITION,
-        pend: RAIL_CENTER_POSITION,
-      });
-      ////// set main rail to untilted
-      currentRotationAnimationTargets.push({
-        target: ALL_GROUPS[negMod(previousGroupIndex, 8)].railGroup,
-        qstart: RAIL_CENTER_QUTERNION,
-        qend: RAIL_SIDE_QUTERNION,
-        pstart: RAIL_CENTER_POSITION,
-        pend: RAIL_SIDE_POSITION,
-      });
-      ////// set main to right
-      currentRotationAnimationTargets.push({
-        target: ALL_GROUPS[negMod(previousGroupIndex, 8)].sideGroup,
-        qstart: MIDDLE_QUATERNION,
-        qend: RIGHT_SIDE_QUATERNION,
-        pstart: MIDDLE_POSITION,
-        pend: RIGHT_SIDE_POSITION,
-      });
-      ////// set right to right on deck
-      currentRotationAnimationTargets.push({
-        target: ALL_GROUPS[negMod(previousGroupIndex - 1, 8)].sideGroup,
-        qstart: RIGHT_SIDE_QUATERNION,
-        qend: RIGHT_ON_DECK_QUATERNION,
-        pstart: RIGHT_SIDE_POSITION,
-        pend: RIGHT_ON_DECK_POSITION,
-      });
-    } else {
-      // do the non-animating shifts
-      //// left on deck goes to not visible
-      ALL_GROUPS[negMod(previousGroupIndex + 2, 8)].sideGroup.applyMatrix4(
-        OFF_SCREEN_M4
-      );
-      //// right-most not visible goes to right on-deck
-      ALL_GROUPS[negMod(previousGroupIndex - 3, 8)].sideGroup.applyMatrix4(
-        RIGHT_ON_DECK_M4
-      );
-      //// set the visibility of right-on-deck to true
-      ALL_GROUPS[negMod(previousGroupIndex - 2, 8)].sideGroup.visible = true;
-      //// set the animation targets
-      ////// set right on deck to right
-      currentRotationAnimationTargets.push({
-        target: ALL_GROUPS[negMod(previousGroupIndex - 2, 8)].sideGroup,
-        qstart: RIGHT_ON_DECK_QUATERNION,
-        qend: RIGHT_SIDE_QUATERNION,
-        pstart: RIGHT_ON_DECK_POSITION,
-        pend: RIGHT_SIDE_POSITION,
-      });
-      ////// set right to main
-      currentRotationAnimationTargets.push({
-        target: ALL_GROUPS[negMod(previousGroupIndex - 1, 8)].sideGroup,
-        qstart: RIGHT_SIDE_QUATERNION,
-        qend: MIDDLE_QUATERNION,
-        pstart: RIGHT_SIDE_POSITION,
-        pend: MIDDLE_POSITION,
-      });
-      ////// set right rail to tilted
-      currentRotationAnimationTargets.push({
-        target: ALL_GROUPS[negMod(previousGroupIndex - 1, 8)].railGroup,
-        qstart: RAIL_SIDE_QUTERNION,
-        qend: RAIL_CENTER_QUTERNION,
-        pstart: RAIL_SIDE_POSITION,
-        pend: RAIL_CENTER_POSITION,
-      });
-      ////// set main rail to untilted
-      currentRotationAnimationTargets.push({
-        target: ALL_GROUPS[negMod(previousGroupIndex, 8)].railGroup,
-        qstart: RAIL_CENTER_QUTERNION,
-        qend: RAIL_SIDE_QUTERNION,
-        pstart: RAIL_CENTER_POSITION,
-        pend: RAIL_SIDE_POSITION,
-      });
-      ////// set main to left
-      currentRotationAnimationTargets.push({
-        target: ALL_GROUPS[negMod(previousGroupIndex, 8)].sideGroup,
-        qstart: MIDDLE_QUATERNION,
-        qend: LEFT_SIDE_QUATERNION,
-        pstart: MIDDLE_POSITION,
-        pend: LEFT_SIDE_POSITION,
-      });
-      ////// set left to left on deck
-      currentRotationAnimationTargets.push({
-        target: ALL_GROUPS[negMod(previousGroupIndex + 1, 8)].sideGroup,
-        qstart: LEFT_SIDE_QUATERNION,
-        qend: LEFT_ON_DECK_QUATERNION,
-        pstart: LEFT_SIDE_POSITION,
-        pend: LEFT_ON_DECK_POSITION,
-      });
-    }
-    mainGroup = ALL_GROUPS[currentGroupIndex];
-    leftSideGroup = ALL_GROUPS[negMod(currentGroupIndex + 1, 8)];
-    rightSideGroup = ALL_GROUPS[negMod(currentGroupIndex - 1, 8)];
-    inRotationAnimation = true;
-    rotationAnimationDirection = dir;
-  };
-
-  const handleTouch = (event) => {
-    if (!isPlaying) {
-      return;
-    }
-    const elapsedTime = audioContext.currentTime - beginTime;
-
-    for (const touch of event.changedTouches) {
-      pointerBuffer.x = (touch.clientX / window.innerWidth) * 2 - 1;
-      pointerBuffer.y = -(touch.clientY / window.innerHeight) * 2 + 1;
-      raycaster.setFromCamera(pointerBuffer, camera);
-      const intersects = raycaster.intersectObjects(touchAreas);
-      if (intersects.length === 0) {
-        continue;
-      }
-      const index = Math.floor(elapsedTime * TABLE_DENSITY_PER_SECOND);
-      const activeLanes = mainGroup.laneNoteTable[index];
-      // rails are always represented on the left
-      // so we take the rightSideGroup to represent the left rail
-      const activeRails = mainGroup.railNoteTable[index].concat(
-        ...rightSideGroup.railNoteTable[index]
-      );
-
-      for (const {
-        object: { uuid },
-      } of intersects) {
-        //// start loop
-
-        const touchIndex = touchAreas.findIndex(
-          (element) => element.uuid === uuid
-        ); // 0,1,2,3 is the highway, 4 is the left, 5 is the right
-
-        const latestLaneNote =
-          touchIndex > 3 || activeLanes[touchIndex] === undefined
-            ? undefined
-            : mainGroup.laneNoteInfo[activeLanes[touchIndex]];
-        if (
-          latestLaneNote &&
-          elapsedTime > latestLaneNote.timing - 0.1 &&
-          elapsedTime < latestLaneNote.timing + 0.1
-        ) {
-          const untilPerfect = Math.abs(elapsedTime - latestLaneNote.timing);
-          let scoreMultiplier = undefined;
-          if (untilPerfect < 0.016) {
-            comboCount += 1;
-            scoreMultiplier
-            scoreSpan.text("Perfect!");
-            comboSpan.text(comboCount);
-            latestLaneNote.hasHit = true;
-            scoreMultiplier = PERFECT_MULTIPLIER;
-          } else if (untilPerfect < 0.032) {
-            comboCount += 1;
-            scoreSpan.text("Nice");
-            comboSpan.text(comboCount);
-            latestLaneNote.hasHit = true;
-            scoreMultiplier = GREAT_MULTIPLIER;
-          } else {
-            comboCount += 1;
-            scoreSpan.text("Almost");
-            comboSpan.text(comboCount);
-            latestLaneNote.hasHit = true;
-            scoreMultiplier = OK_MULTIPLIER;
-          }
-          score.score += scoreMultiplier * (1 + comboCount) * SCORE_MULTIPLIERS[mainGroup.groupId];
-          score.highestCombo = Math.max(score.highestCombo, comboCount);
-          realScore.text(score.score.toFixed(1));
+    const context = {
+      movementThreshold: 1.0,
+      toggleDims: function () {
+        for (const dim of dims) {
+          dim.visible = !dim.visible;
         }
-        const latestRailNote =
-          touchIndex === 4 && activeRails[0] !== undefined
-            ? mainGroup.railNoteInfo[activeRails[0]]
-            : touchIndex === 5 && activeRails[1] !== undefined
-            ? rightSideGroup.railNoteInfo[activeRails[1]]
-            : undefined;
-        if (
-          latestRailNote &&
-          elapsedTime > latestRailNote.timing - 0.1 &&
-          elapsedTime < latestRailNote.timing + 0.1
-        ) {
-          scoreSpan.text(touchIndex === 4 ? "Shift Left!" : "Shift Right!");
-          comboSpan.text("");
-          latestRailNote.hasHit = true;
-          doShift(
-            touchIndex === 4
-              ? SHIFT_INSTRUCTION.GO_LEFT
-              : SHIFT_INSTRUCTION.GO_RIGHT
-          );
-        }
-        /// end loop
-      }
-    }
-  };
-
-  document.documentElement.addEventListener("touchstart", handleTouch);
-
-  const renderLoop = () => {
-    raycaster.setFromCamera(pointerBuffer, camera);
-
-    if (isPlaying) {
-      const elapsedTime = audioContext.currentTime - beginTime;
-      if (inRotationAnimation) {
-        if (rotationAnimationStartsAt === undefined) {
-          rotationAnimationStartsAt = elapsedTime;
-        }
-        if (elapsedTime > ROTATION_DURATION + rotationAnimationStartsAt) {
-          // set the final
-          for (const target of currentRotationAnimationTargets) {
-            target.target.quaternion.copy(target.qend);
-            target.target.position.copy(target.pend);
-          }
-          // remove visibility of anything that would have become invisible
-          if (rotationAnimationDirection === SHIFT_INSTRUCTION.GO_LEFT) {
-            // something to the far off right should be invisible
-            ALL_GROUPS[negMod(currentGroupIndex - 2, 8)].visible = false;
-            mainGroup.highway.material.opacity = 1.0;
-            rightSideGroup.highway.material.opacity = SIDE_LANE_OPACITY;
-          } else {
-            // something to the far off left should be invisible
-            ALL_GROUPS[negMod(currentGroupIndex + 2, 8)].visible = false;
-            mainGroup.highway.material.opacity = 1.0;
-            leftSideGroup.highway.material.opacity = SIDE_LANE_OPACITY;
-          }
-          // then set everything to false and empty the targets
-          inRotationAnimation = false;
-          rotationAnimationStartsAt = undefined;
-          currentRotationAnimationTargets.length = 0;
+      },
+      toggleFullScreen: function () {
+        if (document.fullscreenElement !== null) {
+          document.exitFullscreen();
         } else {
-          const NORMALIZED_TIME =
-            (elapsedTime - rotationAnimationStartsAt) / ROTATION_DURATION;
-          if (rotationAnimationDirection === SHIFT_INSTRUCTION.GO_LEFT) {
-            mainGroup.highway.material.opacity = lerpyMcLerpLerp(
-              SIDE_LANE_OPACITY,
-              1.0,
-              NORMALIZED_TIME
-            );
-            rightSideGroup.highway.material.opacity = lerpyMcLerpLerp(
-              1.0,
-              SIDE_LANE_OPACITY,
-              NORMALIZED_TIME
-            );
-          } else {
-            mainGroup.highway.material.opacity = lerpyMcLerpLerp(
-              SIDE_LANE_OPACITY,
-              1.0,
-              NORMALIZED_TIME
-            );
-            leftSideGroup.highway.material.opacity = lerpyMcLerpLerp(
-              1.0,
-              SIDE_LANE_OPACITY,
-              NORMALIZED_TIME
-            );
-          }
-          for (const target of currentRotationAnimationTargets) {
-            target.target.quaternion.copy(
-              target.qstart.clone().slerp(target.qend, NORMALIZED_TIME)
-            );
-            target.target.position.copy(
-              target.pstart.clone().lerp(target.pend, NORMALIZED_TIME)
-            );
-          }
+          document.documentElement.requestFullscreen();
         }
+      },
+      togglePlayBack: togglePlayBack({ audioDataPromise }),
+    };
+
+    gui.add(context, "toggleDims").name("Toggle Dims");
+    gui.add(context, "toggleFullScreen").name("Toggle Full Screen");
+    gui.add(context, "movementThreshold", 0.5, 1.5).name("Movement Threshold");
+    gui.add(context, "togglePlayBack").name("Toggle Playback");
+
+    const tryResizeRendererToDisplay = () => {
+      const canvas = renderer.domElement;
+      const pixelRatio = window.devicePixelRatio;
+      const width = (canvas.clientWidth * pixelRatio) | 0;
+      const height = (canvas.clientHeight * pixelRatio) | 0;
+      const needResize = canvas.width !== width || canvas.height !== height;
+      if (needResize) {
+        renderer.setSize(width, height, false);
+        const canvas = renderer.domElement;
+        camera.aspect = canvas.clientWidth / canvas.clientHeight;
+        camera.updateProjectionMatrix();
       }
-      mainGroup.laneNoteMesh.material.uniforms.uTime.value = elapsedTime;
-      mainGroup.railNoteMesh.material.uniforms.uTime.value = elapsedTime;
-      leftSideGroup.laneNoteMesh.material.uniforms.uTime.value = elapsedTime;
-      leftSideGroup.railNoteMesh.material.uniforms.uTime.value = elapsedTime;
-      rightSideGroup.laneNoteMesh.material.uniforms.uTime.value = elapsedTime;
-      rightSideGroup.railNoteMesh.material.uniforms.uTime.value = elapsedTime;
-      const index = Math.floor(elapsedTime * TABLE_DENSITY_PER_SECOND);
-      const activeLanes = mainGroup.laneNoteTable[index];
-      for (var i = 0; i < activeLanes.length; i++) {
-        if (activeLanes[i] === undefined) {
+    };
+
+    const pointerBuffer = new three.Vector2();
+
+    const doShift = (dir) => {
+      const previousGroupIndex = currentGroupIndex;
+      currentGroupIndex = negMod(
+        dir === SHIFT_INSTRUCTION.GO_LEFT
+          ? currentGroupIndex + 1
+          : currentGroupIndex - 1,
+        8
+      );
+      if (dir === SHIFT_INSTRUCTION.GO_LEFT) {
+        // do the non-animating shifts
+        //// right on deck goes to not visible
+        ALL_GROUPS[negMod(previousGroupIndex - 2, 8)].sideGroup.applyMatrix4(
+          OFF_SCREEN_M4
+        );
+        //// left-most not visible goes to left on-deck
+        ALL_GROUPS[negMod(previousGroupIndex + 3, 8)].sideGroup.applyMatrix4(
+          LEFT_ON_DECK_M4
+        );
+        //// set the visibility of left-on-deck to true
+        ALL_GROUPS[negMod(previousGroupIndex + 2, 8)].sideGroup.visible = true;
+        //// set the animation targets
+        ////// set left on deck to left
+        currentRotationAnimationTargets.push({
+          target: ALL_GROUPS[negMod(previousGroupIndex + 2, 8)].sideGroup,
+          qstart: LEFT_ON_DECK_QUATERNION,
+          qend: LEFT_SIDE_QUATERNION,
+          pstart: LEFT_ON_DECK_POSITION,
+          pend: LEFT_SIDE_POSITION,
+        });
+        ////// set left to main
+        currentRotationAnimationTargets.push({
+          target: ALL_GROUPS[negMod(previousGroupIndex + 1, 8)].sideGroup,
+          qstart: LEFT_SIDE_QUATERNION,
+          qend: MIDDLE_QUATERNION,
+          pstart: LEFT_SIDE_POSITION,
+          pend: MIDDLE_POSITION,
+        });
+        ////// set left rail to tilted
+        currentRotationAnimationTargets.push({
+          target: ALL_GROUPS[negMod(previousGroupIndex + 1, 8)].railGroup,
+          qstart: RAIL_SIDE_QUTERNION,
+          qend: RAIL_CENTER_QUTERNION,
+          pstart: RAIL_SIDE_POSITION,
+          pend: RAIL_CENTER_POSITION,
+        });
+        ////// set main rail to untilted
+        currentRotationAnimationTargets.push({
+          target: ALL_GROUPS[negMod(previousGroupIndex, 8)].railGroup,
+          qstart: RAIL_CENTER_QUTERNION,
+          qend: RAIL_SIDE_QUTERNION,
+          pstart: RAIL_CENTER_POSITION,
+          pend: RAIL_SIDE_POSITION,
+        });
+        ////// set main to right
+        currentRotationAnimationTargets.push({
+          target: ALL_GROUPS[negMod(previousGroupIndex, 8)].sideGroup,
+          qstart: MIDDLE_QUATERNION,
+          qend: RIGHT_SIDE_QUATERNION,
+          pstart: MIDDLE_POSITION,
+          pend: RIGHT_SIDE_POSITION,
+        });
+        ////// set right to right on deck
+        currentRotationAnimationTargets.push({
+          target: ALL_GROUPS[negMod(previousGroupIndex - 1, 8)].sideGroup,
+          qstart: RIGHT_SIDE_QUATERNION,
+          qend: RIGHT_ON_DECK_QUATERNION,
+          pstart: RIGHT_SIDE_POSITION,
+          pend: RIGHT_ON_DECK_POSITION,
+        });
+      } else {
+        // do the non-animating shifts
+        //// left on deck goes to not visible
+        ALL_GROUPS[negMod(previousGroupIndex + 2, 8)].sideGroup.applyMatrix4(
+          OFF_SCREEN_M4
+        );
+        //// right-most not visible goes to right on-deck
+        ALL_GROUPS[negMod(previousGroupIndex - 3, 8)].sideGroup.applyMatrix4(
+          RIGHT_ON_DECK_M4
+        );
+        //// set the visibility of right-on-deck to true
+        ALL_GROUPS[negMod(previousGroupIndex - 2, 8)].sideGroup.visible = true;
+        //// set the animation targets
+        ////// set right on deck to right
+        currentRotationAnimationTargets.push({
+          target: ALL_GROUPS[negMod(previousGroupIndex - 2, 8)].sideGroup,
+          qstart: RIGHT_ON_DECK_QUATERNION,
+          qend: RIGHT_SIDE_QUATERNION,
+          pstart: RIGHT_ON_DECK_POSITION,
+          pend: RIGHT_SIDE_POSITION,
+        });
+        ////// set right to main
+        currentRotationAnimationTargets.push({
+          target: ALL_GROUPS[negMod(previousGroupIndex - 1, 8)].sideGroup,
+          qstart: RIGHT_SIDE_QUATERNION,
+          qend: MIDDLE_QUATERNION,
+          pstart: RIGHT_SIDE_POSITION,
+          pend: MIDDLE_POSITION,
+        });
+        ////// set right rail to tilted
+        currentRotationAnimationTargets.push({
+          target: ALL_GROUPS[negMod(previousGroupIndex - 1, 8)].railGroup,
+          qstart: RAIL_SIDE_QUTERNION,
+          qend: RAIL_CENTER_QUTERNION,
+          pstart: RAIL_SIDE_POSITION,
+          pend: RAIL_CENTER_POSITION,
+        });
+        ////// set main rail to untilted
+        currentRotationAnimationTargets.push({
+          target: ALL_GROUPS[negMod(previousGroupIndex, 8)].railGroup,
+          qstart: RAIL_CENTER_QUTERNION,
+          qend: RAIL_SIDE_QUTERNION,
+          pstart: RAIL_CENTER_POSITION,
+          pend: RAIL_SIDE_POSITION,
+        });
+        ////// set main to left
+        currentRotationAnimationTargets.push({
+          target: ALL_GROUPS[negMod(previousGroupIndex, 8)].sideGroup,
+          qstart: MIDDLE_QUATERNION,
+          qend: LEFT_SIDE_QUATERNION,
+          pstart: MIDDLE_POSITION,
+          pend: LEFT_SIDE_POSITION,
+        });
+        ////// set left to left on deck
+        currentRotationAnimationTargets.push({
+          target: ALL_GROUPS[negMod(previousGroupIndex + 1, 8)].sideGroup,
+          qstart: LEFT_SIDE_QUATERNION,
+          qend: LEFT_ON_DECK_QUATERNION,
+          pstart: LEFT_SIDE_POSITION,
+          pend: LEFT_ON_DECK_POSITION,
+        });
+      }
+      mainGroup = ALL_GROUPS[currentGroupIndex];
+      leftSideGroup = ALL_GROUPS[negMod(currentGroupIndex + 1, 8)];
+      rightSideGroup = ALL_GROUPS[negMod(currentGroupIndex - 1, 8)];
+      inRotationAnimation = true;
+      rotationAnimationDirection = dir;
+    };
+
+    const handleTouch = (event) => {
+      if (!isPlaying) {
+        return;
+      }
+      const elapsedTime = audioContext.currentTime - beginTime;
+
+      for (const touch of event.changedTouches) {
+        pointerBuffer.x = (touch.clientX / window.innerWidth) * 2 - 1;
+        pointerBuffer.y = -(touch.clientY / window.innerHeight) * 2 + 1;
+        raycaster.setFromCamera(pointerBuffer, camera);
+        const intersects = raycaster.intersectObjects(touchAreas);
+        if (intersects.length === 0) {
           continue;
         }
-        if (
-          elapsedTime > mainGroup.laneNoteInfo[activeLanes[i]].timing + 0.1 &&
-          !mainGroup.laneNoteInfo[activeLanes[i]].hasHit
-        ) {
-          comboCount = 0;
-          scoreSpan.text("Miss!");
-          comboSpan.text(comboCount);
-          break;
+        const index = Math.floor(elapsedTime * TABLE_DENSITY_PER_SECOND);
+        const activeLanes = mainGroup.laneNoteTable[index];
+        // rails are always represented on the left
+        // so we take the rightSideGroup to represent the left rail
+        const activeRails = mainGroup.railNoteTable[index].concat(
+          ...rightSideGroup.railNoteTable[index]
+        );
+
+        for (const {
+          object: { uuid },
+        } of intersects) {
+          //// start loop
+
+          const touchIndex = touchAreas.findIndex(
+            (element) => element.uuid === uuid
+          ); // 0,1,2,3 is the highway, 4 is the left, 5 is the right
+
+          const latestLaneNote =
+            touchIndex > 3 || activeLanes[touchIndex] === undefined
+              ? undefined
+              : mainGroup.laneNoteInfo[activeLanes[touchIndex]];
+          if (
+            latestLaneNote &&
+            elapsedTime > latestLaneNote.timing - 0.1 &&
+            elapsedTime < latestLaneNote.timing + 0.1
+          ) {
+            const untilPerfect = Math.abs(elapsedTime - latestLaneNote.timing);
+            let scoreMultiplier = undefined;
+            if (untilPerfect < 0.016) {
+              comboCount += 1;
+              scoreMultiplier;
+              scoreSpan.text("Perfect!");
+              comboSpan.text(comboCount);
+              latestLaneNote.hasHit = true;
+              scoreMultiplier = PERFECT_MULTIPLIER;
+            } else if (untilPerfect < 0.032) {
+              comboCount += 1;
+              scoreSpan.text("Nice");
+              comboSpan.text(comboCount);
+              latestLaneNote.hasHit = true;
+              scoreMultiplier = GREAT_MULTIPLIER;
+            } else {
+              comboCount += 1;
+              scoreSpan.text("Almost");
+              comboSpan.text(comboCount);
+              latestLaneNote.hasHit = true;
+              scoreMultiplier = OK_MULTIPLIER;
+            }
+            score.score +=
+              scoreMultiplier *
+              (1 + comboCount) *
+              SCORE_MULTIPLIERS[mainGroup.groupId];
+            score.highestCombo = Math.max(score.highestCombo, comboCount);
+            realScore.text(score.score.toFixed(1));
+          }
+          const latestRailNote =
+            touchIndex === 4 && activeRails[0] !== undefined
+              ? mainGroup.railNoteInfo[activeRails[0]]
+              : touchIndex === 5 && activeRails[1] !== undefined
+              ? rightSideGroup.railNoteInfo[activeRails[1]]
+              : undefined;
+          if (
+            latestRailNote &&
+            elapsedTime > latestRailNote.timing - 0.1 &&
+            elapsedTime < latestRailNote.timing + 0.1
+          ) {
+            scoreSpan.text(touchIndex === 4 ? "Shift Left!" : "Shift Right!");
+            comboSpan.text("");
+            latestRailNote.hasHit = true;
+            doShift(
+              touchIndex === 4
+                ? SHIFT_INSTRUCTION.GO_LEFT
+                : SHIFT_INSTRUCTION.GO_RIGHT
+            );
+          }
+          /// end loop
         }
       }
-    }
+    };
 
-    tryResizeRendererToDisplay();
+    document.documentElement.addEventListener("touchstart", handleTouch);
 
-    stats.begin();
-    renderer.render(scene, camera);
-    stats.end();
+    const renderLoop = () => {
+      raycaster.setFromCamera(pointerBuffer, camera);
+
+      if (isPlaying) {
+        const elapsedTime = audioContext.currentTime - beginTime;
+        if (inRotationAnimation) {
+          if (rotationAnimationStartsAt === undefined) {
+            rotationAnimationStartsAt = elapsedTime;
+          }
+          if (elapsedTime > ROTATION_DURATION + rotationAnimationStartsAt) {
+            // set the final
+            for (const target of currentRotationAnimationTargets) {
+              target.target.quaternion.copy(target.qend);
+              target.target.position.copy(target.pend);
+            }
+            // remove visibility of anything that would have become invisible
+            if (rotationAnimationDirection === SHIFT_INSTRUCTION.GO_LEFT) {
+              // something to the far off right should be invisible
+              ALL_GROUPS[negMod(currentGroupIndex - 2, 8)].visible = false;
+              mainGroup.highway.material.opacity = 1.0;
+              rightSideGroup.highway.material.opacity = SIDE_LANE_OPACITY;
+            } else {
+              // something to the far off left should be invisible
+              ALL_GROUPS[negMod(currentGroupIndex + 2, 8)].visible = false;
+              mainGroup.highway.material.opacity = 1.0;
+              leftSideGroup.highway.material.opacity = SIDE_LANE_OPACITY;
+            }
+            // then set everything to false and empty the targets
+            inRotationAnimation = false;
+            rotationAnimationStartsAt = undefined;
+            currentRotationAnimationTargets.length = 0;
+          } else {
+            const NORMALIZED_TIME =
+              (elapsedTime - rotationAnimationStartsAt) / ROTATION_DURATION;
+            if (rotationAnimationDirection === SHIFT_INSTRUCTION.GO_LEFT) {
+              mainGroup.highway.material.opacity = lerpyMcLerpLerp(
+                SIDE_LANE_OPACITY,
+                1.0,
+                NORMALIZED_TIME
+              );
+              rightSideGroup.highway.material.opacity = lerpyMcLerpLerp(
+                1.0,
+                SIDE_LANE_OPACITY,
+                NORMALIZED_TIME
+              );
+            } else {
+              mainGroup.highway.material.opacity = lerpyMcLerpLerp(
+                SIDE_LANE_OPACITY,
+                1.0,
+                NORMALIZED_TIME
+              );
+              leftSideGroup.highway.material.opacity = lerpyMcLerpLerp(
+                1.0,
+                SIDE_LANE_OPACITY,
+                NORMALIZED_TIME
+              );
+            }
+            for (const target of currentRotationAnimationTargets) {
+              target.target.quaternion.copy(
+                target.qstart.clone().slerp(target.qend, NORMALIZED_TIME)
+              );
+              target.target.position.copy(
+                target.pstart.clone().lerp(target.pend, NORMALIZED_TIME)
+              );
+            }
+          }
+        }
+        mainGroup.laneNoteMesh.material.uniforms.uTime.value = elapsedTime;
+        mainGroup.railNoteMesh.material.uniforms.uTime.value = elapsedTime;
+        leftSideGroup.laneNoteMesh.material.uniforms.uTime.value = elapsedTime;
+        leftSideGroup.railNoteMesh.material.uniforms.uTime.value = elapsedTime;
+        rightSideGroup.laneNoteMesh.material.uniforms.uTime.value = elapsedTime;
+        rightSideGroup.railNoteMesh.material.uniforms.uTime.value = elapsedTime;
+        const index = Math.floor(elapsedTime * TABLE_DENSITY_PER_SECOND);
+        const activeLanes = mainGroup.laneNoteTable[index];
+        for (var i = 0; i < activeLanes.length; i++) {
+          if (activeLanes[i] === undefined) {
+            continue;
+          }
+          if (
+            elapsedTime > mainGroup.laneNoteInfo[activeLanes[i]].timing + 0.1 &&
+            !mainGroup.laneNoteInfo[activeLanes[i]].hasHit
+          ) {
+            comboCount = 0;
+            scoreSpan.text("Miss!");
+            comboSpan.text(comboCount);
+            break;
+          }
+        }
+      }
+
+      tryResizeRendererToDisplay();
+
+      stats.begin();
+      renderer.render(scene, camera);
+      stats.end();
+
+      requestAnimationFrame(renderLoop);
+    };
 
     requestAnimationFrame(renderLoop);
   };
-
-  requestAnimationFrame(renderLoop);
+  const introScreen = $("#intro-screen");
+  const instructionScreen = $("#instruction-screen");
+  const scoreGrid = $("#score-grid");
+  // do not await until needed
+  const audioDataPromise = getAudioData();
+  // routing
+  const routing = (() => {
+    const hash = window.location.hash;
+    return { hash };
+  })();
+  const hashChange = async () => {
+    routing.hash = window.location.hash;
+    if (routing.hash.substring(0, 4) !== "#/r/") {
+      const nameInput = $("#spooky-name");
+      $("#new-game").on("click", () => {
+        const enteredName = nameInput.val();
+        if (enteredName.length < 3 || enteredName.length > 16) {
+          Swal.fire({
+            title: "Gloups!",
+            text: "Names must be between 3 and 16 characters",
+            icon: "error",
+            confirmButtonText: "Got it",
+          });
+        } else {
+          introScreen.addClass("hidden");
+          instructionScreen.removeClass("hidden");
+        }
+        $("#start-game").on("click", async () => {
+          await doGame({ audioDataPromise });
+          instructionScreen.addClass("hidden");
+          scoreGrid.removeClass("hidden");
+          await togglePlayBack({ audioDataPromise })();
+        });
+      });
+      introScreen.removeClass("hidden");
+    } else if (routing.hash.substring(0, 4) === "#/r/") {
+      instructionScreen.addClass("hidden");
+      score;
+      await doGame({ audioDataPromise });
+    }
+  };
+  new ClipboardJS(".clippy");
+  $(".clippy").on("click", () => {
+    Swal.fire({
+      icon: "success",
+      title: "Copied!",
+      text: "The link is copied to your clipboard. Send it to up to 7 friends!",
+      confirmButtonText: "Got it 👍",
+    });
+  });
+  window.addEventListener("hashchange", hashChange);
+  hashChange();
 };
 
 main();

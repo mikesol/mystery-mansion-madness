@@ -1,9 +1,63 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /{document=**} {
-      allow read, write: if
-          request.time < timestamp.date(2022, 11, 15);
+    match /rides/{ride} {
+      // add rules later
+      allow read, create: if (request.auth != null && request.resource.data.createdBy == request.auth.uid && request.resource.data.keys().hasOnly(["createdBy"]));
+      allow update: if (
+        // begin generated rules
+        request.auth != null &&
+          (
+          // allow this person to claim player1
+          (request.resource.data.player1 == request.auth.uid && request.resource.data.keys().hasOnly(["player1"]) && resource.data.player2 != request.auth.uid && resource.data.player3 != request.auth.uid && resource.data.player4 != request.auth.uid && resource.data.player5 != request.auth.uid && resource.data.player6 != request.auth.uid && resource.data.player7 != request.auth.uid && resource.data.player8 != request.auth.uid) ||
+          // allow this person to claim player2
+          (request.resource.data.player2 == request.auth.uid && request.resource.data.keys().hasOnly(["player2"]) && resource.data.player1 != request.auth.uid && resource.data.player3 != request.auth.uid && resource.data.player4 != request.auth.uid && resource.data.player5 != request.auth.uid && resource.data.player6 != request.auth.uid && resource.data.player7 != request.auth.uid && resource.data.player8 != request.auth.uid) ||
+          // allow this person to claim player3
+          (request.resource.data.player3 == request.auth.uid && request.resource.data.keys().hasOnly(["player3"]) && resource.data.player1 != request.auth.uid && resource.data.player2 != request.auth.uid && resource.data.player4 != request.auth.uid && resource.data.player5 != request.auth.uid && resource.data.player6 != request.auth.uid && resource.data.player7 != request.auth.uid && resource.data.player8 != request.auth.uid) ||
+          // allow this person to claim player4
+          (request.resource.data.player4 == request.auth.uid && request.resource.data.keys().hasOnly(["player4"]) && resource.data.player1 != request.auth.uid && resource.data.player2 != request.auth.uid && resource.data.player3 != request.auth.uid && resource.data.player5 != request.auth.uid && resource.data.player6 != request.auth.uid && resource.data.player7 != request.auth.uid && resource.data.player8 != request.auth.uid) ||
+          // allow this person to claim player5
+          (request.resource.data.player5 == request.auth.uid && request.resource.data.keys().hasOnly(["player5"]) && resource.data.player1 != request.auth.uid && resource.data.player2 != request.auth.uid && resource.data.player3 != request.auth.uid && resource.data.player4 != request.auth.uid && resource.data.player6 != request.auth.uid && resource.data.player7 != request.auth.uid && resource.data.player8 != request.auth.uid) ||
+          // allow this person to claim player6
+          (request.resource.data.player6 == request.auth.uid && request.resource.data.keys().hasOnly(["player6"]) && resource.data.player1 != request.auth.uid && resource.data.player2 != request.auth.uid && resource.data.player3 != request.auth.uid && resource.data.player4 != request.auth.uid && resource.data.player5 != request.auth.uid && resource.data.player7 != request.auth.uid && resource.data.player8 != request.auth.uid) ||
+          // allow this person to claim player7
+          (request.resource.data.player7 == request.auth.uid && request.resource.data.keys().hasOnly(["player7"]) && resource.data.player1 != request.auth.uid && resource.data.player2 != request.auth.uid && resource.data.player3 != request.auth.uid && resource.data.player4 != request.auth.uid && resource.data.player5 != request.auth.uid && resource.data.player6 != request.auth.uid && resource.data.player8 != request.auth.uid) ||
+          // allow this person to claim player8
+          (request.resource.data.player8 == request.auth.uid && request.resource.data.keys().hasOnly(["player8"]) && resource.data.player1 != request.auth.uid && resource.data.player2 != request.auth.uid && resource.data.player3 != request.auth.uid && resource.data.player4 != request.auth.uid && resource.data.player5 != request.auth.uid && resource.data.player6 != request.auth.uid && resource.data.player7 != request.auth.uid) ||
+          // this person is player1 and is setting their name
+          (resource.data.player1 == request.auth.uid && request.resource.data.keys().hasOnly(["player1Name"])) ||
+          // this person is player2 and is setting their name
+          (resource.data.player2 == request.auth.uid && request.resource.data.keys().hasOnly(["player2Name"])) ||
+          // this person is player3 and is setting their name
+          (resource.data.player3 == request.auth.uid && request.resource.data.keys().hasOnly(["player3Name"])) ||
+          // this person is player4 and is setting their name
+          (resource.data.player4 == request.auth.uid && request.resource.data.keys().hasOnly(["player4Name"])) ||
+          // this person is player5 and is setting their name
+          (resource.data.player5 == request.auth.uid && request.resource.data.keys().hasOnly(["player5Name"])) ||
+          // this person is player6 and is setting their name
+          (resource.data.player6 == request.auth.uid && request.resource.data.keys().hasOnly(["player6Name"])) ||
+          // this person is player7 and is setting their name
+          (resource.data.player7 == request.auth.uid && request.resource.data.keys().hasOnly(["player7Name"])) ||
+          // this person is player8 and is setting their name
+          (resource.data.player8 == request.auth.uid && request.resource.data.keys().hasOnly(["player8Name"])) ||
+          // this person is player1 and is setting their score
+          (resource.data.player1 == request.auth.uid && request.resource.data.keys().hasOnly(["player1Score"])) ||
+          // this person is player2 and is setting their score
+          (resource.data.player2 == request.auth.uid && request.resource.data.keys().hasOnly(["player2Score"])) ||
+          // this person is player3 and is setting their score
+          (resource.data.player3 == request.auth.uid && request.resource.data.keys().hasOnly(["player3Score"])) ||
+          // this person is player4 and is setting their score
+          (resource.data.player4 == request.auth.uid && request.resource.data.keys().hasOnly(["player4Score"])) ||
+          // this person is player5 and is setting their score
+          (resource.data.player5 == request.auth.uid && request.resource.data.keys().hasOnly(["player5Score"])) ||
+          // this person is player6 and is setting their score
+          (resource.data.player6 == request.auth.uid && request.resource.data.keys().hasOnly(["player6Score"])) ||
+          // this person is player7 and is setting their score
+          (resource.data.player7 == request.auth.uid && request.resource.data.keys().hasOnly(["player7Score"])) ||
+          // this person is player8 and is setting their score
+          (resource.data.player8 == request.auth.uid && request.resource.data.keys().hasOnly(["player8Score"])) ||
+          )
+        );
     }
   }
 }
