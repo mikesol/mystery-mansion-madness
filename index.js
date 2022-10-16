@@ -5,7 +5,7 @@ import * as eruda from "eruda";
 import Stats from "stats.js";
 import * as three from "three";
 import { createCamera } from "./camera.js";
-import { createHeavenlyBodies } from "./core/body.js";
+import { createHeavenlyBodies, createHighlights } from "./core/body.js";
 import Deque from "double-ended-queue";
 
 eruda.init();
@@ -74,8 +74,10 @@ const main = () => {
     }
 
     const { mesh: heavenlyBodiesMesh, notes: heavenlyBodiesInfos } = createHeavenlyBodies(noteInfos);
+    const { mesh: highlightsMesh, notes: highlightsInfos } = createHighlights(noteInfos);
 
     scene.add(heavenlyBodiesMesh);
+    scene.add(highlightsMesh);
 
     let audioContext = null;
     let beginTime = null;
@@ -115,8 +117,9 @@ const main = () => {
     }
 
     const bufferVector3 = new three.Vector3();
-    const bufferColor = new three.Color();
+    // const bufferColor = new three.Color();
     const heavenlyBodiesActive = new Deque();
+    const highlightsActive = new Deque();
 
     const renderLoop = () => {
         requestAnimationFrame(renderLoop);
@@ -137,6 +140,18 @@ const main = () => {
                 }
             }
 
+            while (true) {
+                const latestNote = highlightsInfos.at(-1);
+                if (latestNote === undefined) {
+                    break;
+                }
+                if (elapsedTime > latestNote.timing - context.movementThreshold) {
+                    highlightsActive.push(highlightsInfos.pop());
+                } else {
+                    break;
+                }
+            }
+
             for (const { timing, matrix, index, initialX, initialY, initialZ, targetX, targetY, targetZ } of heavenlyBodiesActive.toArray()) {
                 const movementStart = timing - context.movementThreshold;
 
@@ -147,16 +162,27 @@ const main = () => {
                     interpolate(elapsedTime, [movementStart, timing], [initialZ, targetZ]),
                 );
                 heavenlyBodiesMesh.setMatrixAt(index, matrix.setPosition(bufferVector3));
+            }
 
-                if (elapsedTime > timing + 0.075) {
-                    heavenlyBodiesMesh.setColorAt(index, bufferColor.setHex(0xFF0000));
-                    heavenlyBodiesMesh.instanceColor.needsUpdate = true;
-                } else if (elapsedTime > timing - 0.075) {
-                    heavenlyBodiesMesh.setColorAt(index, bufferColor.setHex(0x00FF00));
-                    heavenlyBodiesMesh.instanceColor.needsUpdate = true;
-                } else if (elapsedTime > timing - 0.1) {
-                    heavenlyBodiesMesh.setColorAt(index, bufferColor.setHex(0xFF0000));
-                    heavenlyBodiesMesh.instanceColor.needsUpdate = true;
+            for (const { timing, matrix, index, initialX, initialY, initialZ, targetX, targetY, targetZ } of highlightsActive.toArray()) {
+                const movementStart = timing - context.movementThreshold;
+                const judgmentStart = timing - 0.5;
+
+                if (elapsedTime > judgmentStart) {
+                    matrix.makeScale(
+                        interpolate(elapsedTime, [judgmentStart, timing], [2.0, 1.0]),
+                        interpolate(elapsedTime, [judgmentStart, timing], [2.0, 1.0]),
+                        interpolate(elapsedTime, [judgmentStart, timing], [2.0, 1.0]),
+                    );
+
+                    bufferVector3.set(
+                        interpolate(elapsedTime, [movementStart, timing], [initialX, targetX]),
+                        interpolate(elapsedTime, [movementStart, timing], [initialY, targetY]),
+                        interpolate(elapsedTime, [movementStart, timing], [initialZ, targetZ]),
+                    );
+                    matrix.setPosition(bufferVector3);
+
+                    highlightsMesh.setMatrixAt(index, matrix);
                 }
             }
 
@@ -174,7 +200,22 @@ const main = () => {
                 }
             }
 
+            while (true) {
+                const latestNote = highlightsActive.peekFront();
+                if (latestNote === undefined) {
+                    break;
+                }
+                if (elapsedTime > latestNote.timing + 0.1) {
+                    const latestNote = highlightsActive.removeFront();
+                    bufferVector3.set(0.0, 0.0, 20.0);
+                    highlightsMesh.setMatrixAt(latestNote.index, latestNote.matrix.setPosition(bufferVector3));
+                } else {
+                    break;
+                }
+            }
+
             heavenlyBodiesMesh.instanceMatrix.needsUpdate = true;
+            highlightsMesh.instanceMatrix.needsUpdate = true;
         }
 
         stats.begin();

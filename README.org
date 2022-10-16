@@ -11,7 +11,7 @@ In the 3x3 grid-based path, heavenly bodies approach preset positions within the
 
 In the free-form path, heavenly bodies approach random positions within the playing field. Notes can come from arbitrary positions but unlike the grid-based one, they'll be appearing from the back for now, until they reach ~z=0.0~. This would make the proof of concept have the same gameplay format as osu! except more barebones and having a tighter social aspect.
 
-* Tasks [2/5]
+* Tasks [3/5]
 
 ** DONE Implement movement for grid-based gameplay
 
@@ -25,7 +25,7 @@ Change the colors of the heavenly bodies once they reach the threshold that they
 
 Spawn notes in random locations and move them to random positions as well, taking care of collisions.
 
-** TODO Implement animated visual indicators for timing
+** DONE Implement animated visual indicators for timing
 
 Implement "target locked" animations through meshes and add them to heavenly bodies or something.
 
