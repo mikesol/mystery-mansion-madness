@@ -794,6 +794,11 @@ const main = async () => {
         rightSideGroup.railNoteMesh.material.uniforms.uTime.value = elapsedTime;
         const index = Math.floor(elapsedTime * TABLE_DENSITY_PER_SECOND);
         const activeLanes = mainGroup.laneNoteTable[index];
+        if (!activeLanes) {
+          // we're done
+          // return without requesting another frame
+          return;
+        }
         for (var i = 0; i < activeLanes.length; i++) {
           if (activeLanes[i] === undefined) {
             continue;
