@@ -17,6 +17,7 @@ specifiers:
   mobile-detect: ^1.4.5
   postcss: ^8.4.18
   prettier: ^2.7.1
+  screenfull: ^6.0.2
   stats.js: ^0.17.0
   sweetalert2: ^11.5.2
   tailwindcss: ^3.1.8
@@ -35,6 +36,7 @@ dependencies:
   jquery: 3.6.1
   lil-gui: 0.17.0
   mobile-detect: 1.4.5
+  screenfull: 6.0.2
   sweetalert2: 11.5.2
   three: 0.144.0
 
@@ -2377,6 +2379,11 @@ packages:
   /sax/1.2.4:
     resolution: {integrity: sha512-NqVDv9TpANUjFm0N8uM5GxL36UgKi9/atZw+x7YFnQ8ckwFGKrl4xX4yWtrey3UJm5nP1kUbnYgLopqWNSRhWw==}
     dev: true
+
+  /screenfull/6.0.2:
+    resolution: {integrity: sha512-AQdy8s4WhNvUZ6P8F6PB21tSPIYKniic+Ogx0AacBMjKP1GUHN2E9URxQHtCusiwxudnCKkdy4GrHXPPJSkCCw==}
+    engines: {node: ^14.13.1 || >=16.0.0}
+    dev: false
 
   /select/1.1.2:
     resolution: {integrity: sha512-OwpTSOfy6xSs1+pwcNrv0RBMOzI39Lp3qQKUTPVVPRjCdNa5JH/oPRiqsesIskK8TVgmRiHwO4KXlV2Li9dANA==}
