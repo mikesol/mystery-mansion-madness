@@ -407,11 +407,12 @@ const main = async () => {
             );
             // todo - make this more resilient to multiple shifts, ie if there are several in a row from all directions
             // the game will still sort of work in this case, but it will not be totally accurate score-wise
-            console.log(
-              newIndex > currentGroupIndex ? "shifting left" : "shifting right"
-            );
+            const shiftingLeft =
+              (newIndex > currentGroupIndex && !(newIndex === 7 && currentGroupIndex === 0)) ||
+              (newIndex === 0 && currentGroupIndex === 7);
+            console.log(shiftingLeft ? "shifting left" : "shifting right");
             doShift(
-              newIndex > currentGroupIndex
+              shiftingLeft
                 ? SHIFT_INSTRUCTION.GO_LEFT
                 : SHIFT_INSTRUCTION.GO_RIGHT
             );
