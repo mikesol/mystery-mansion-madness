@@ -277,10 +277,10 @@ const main = async () => {
               Swal.fire({
                 title: "Congrats!",
                 text: `Your final score is ${finalScore}.`,
-                imageUrl: "https://source.unsplash.com/QzpgqElvSiA/400x200",
-                imageWidth: 400,
-                imageHeight: 200,
-                imageAlt: "Custom image",
+                //imageUrl: "https://source.unsplash.com/QzpgqElvSiA/400x200",
+                // imageWidth: 400,
+                // imageHeight: 200,
+                // imageAlt: "Custom image",
                 confirmButtonText: "Play again",
               }).then(() => {
                 window.location = "https://joyride.fm";
@@ -855,9 +855,9 @@ const main = async () => {
         const name = nameInput.val();
         if (name.length < 3 || name.length > 16) {
           Swal.fire({
-            title: "Gloups!",
+            title: "Yikes!",
             text: "Names must be between 3 and 16 characters",
-            icon: "error",
+            //icon: "error",
             confirmButtonText: "Got it",
           });
         } else {
@@ -936,9 +936,9 @@ const main = async () => {
         const name = nameInput.val();
         if (name.length < 3 || name.length > 16) {
           Swal.fire({
-            title: "Gloups!",
+            title: "Yikes!",
             text: "Names must be between 3 and 16 characters",
-            icon: "error",
+            //icon: "error",
             confirmButtonText: "Got it",
           });
         } else {
@@ -1007,7 +1007,7 @@ const main = async () => {
   new ClipboardJS(".clippy");
   $(".clippy").on("click", () => {
     Swal.fire({
-      icon: "success",
+      //icon: "success",
       title: "Copied!",
       text: "The link is copied to your clipboard. Send it to up to 7 friends!",
       timer: 2000,
