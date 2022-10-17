@@ -12,7 +12,7 @@ jobs:
       - uses: pnpm/action-setup@v2.2.4
         with:
           version: 7.13.2
-      - run: pnpm ci && pnpm run build
+      - run: pnpm i && pnpm run build
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: '${{ secrets.GITHUB_TOKEN }}'
