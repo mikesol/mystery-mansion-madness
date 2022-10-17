@@ -77,7 +77,9 @@ import {
   bumpScore,
   claimPlayerLoop,
   createGame,
+  createScore,
   getGame,
+  getRank,
   listen,
   setStart,
   shiftLeft,
@@ -247,7 +249,7 @@ const main = async () => {
   let isPlaying = false;
 
   const togglePlayBack =
-    ({ audioDataPromise, title, player }) =>
+    ({ audioDataPromise, title, player, name }) =>
     async () => {
       if (audioContext) {
         audioContext.close();
@@ -283,9 +285,11 @@ const main = async () => {
                 }
               }
               finalScore += score.score;
+              await createScore({ score: finalScore, name });
+              const rank = await getRank({ score: score.score });
               Swal.fire({
                 title: "Congrats!",
-                text: `Your final score is ${finalScore.toFixed(1)}.`,
+                text: `Your final score is ${finalScore.toFixed(1)}. Your world ranking is #${rank}.`,
                 //imageUrl: "https://source.unsplash.com/QzpgqElvSiA/400x200",
                 // imageWidth: 400,
                 // imageHeight: 200,
@@ -801,11 +805,10 @@ const main = async () => {
           if (previousLanes[i] === undefined) {
             continue;
           }
-        // we assess a penalty if the previous lane is in the past
-        // and it has not been hit
-        if (
-            elapsedTime >
-              mainGroup.laneNoteInfo[previousLanes[i]].timing &&
+          // we assess a penalty if the previous lane is in the past
+          // and it has not been hit
+          if (
+            elapsedTime > mainGroup.laneNoteInfo[previousLanes[i]].timing &&
             !mainGroup.laneNoteInfo[previousLanes[i]].hasHit
           ) {
             comboCount = 0;
@@ -895,11 +898,13 @@ const main = async () => {
                     audioDataPromise,
                     practice: false,
                     player: claimPlayerRes,
+                    name,
                   });
                   await togglePlayBack({
                     audioDataPromise,
                     title,
                     player: claimPlayerRes,
+                    name,
                   })();
                 }
               },
@@ -978,11 +983,13 @@ const main = async () => {
               practice: false,
               player: claimPlayerRes,
               title,
+              name,
             });
             await togglePlayBack({
               audioDataPromise,
               title,
               player: claimPlayerRes,
+              name,
             })();
           });
         }

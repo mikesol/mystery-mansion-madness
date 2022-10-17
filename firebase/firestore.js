@@ -9,6 +9,8 @@ import {
   getDocs,
   query,
   onSnapshot,
+  getCountFromServer,
+  where,
   runTransaction,
 } from "firebase/firestore";
 import { makeid } from "../util/ids";
@@ -41,11 +43,25 @@ export const getGame = async ({ title }) => {
     return undefined;
   }
 };
-export const createScore = async ({ title, name, score }) => {
+
+export const createScore = async ({ name, score }) => {
+  const title = makeid(6);
   await setDoc(doc(db, "scores", title), {
     name,
     score,
   });
+};
+
+export const getRank = async ({ score }) => {
+  const q = query(
+    collection(db, "scores"),
+    orderBy("score", "desc"),
+    where("score", ">", score)
+  );
+
+  // number of users with higher score
+  const snapshot = await getCountFromServer(q);
+  return snapshot.data().count + 1;
 };
 
 export const setStart = async ({ title, startsAt }) => {
@@ -141,7 +157,7 @@ export const shiftPlayer =
         }
       }
       toUpdate["player" + player + "Position"] = newPos;
-      console.log('updating', toUpdate);
+      console.log("updating", toUpdate);
       transaction.update(docRef, toUpdate);
     });
   };
