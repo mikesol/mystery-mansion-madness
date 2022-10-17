@@ -105,6 +105,17 @@ export const SIDES = {
   OFF_SCREEN: -35,
 };
 
+export const SIDES_CLOCKWISE = [
+  SIDES.CENTER,
+  SIDES.LEFT_SIDE,
+  SIDES.LEFT_ON_DECK,
+  SIDES.OFF_SCREEN,
+  SIDES.OFF_SCREEN,
+  SIDES.OFF_SCREEN,
+  SIDES.RIGHT_ON_DECK,
+  SIDES.RIGHT_SIDE,
+]
+
 export const createRails = () => {
   const mesh = new three.Mesh(RAIL_GEOMETRY, RAIL_MATERIAL);
 

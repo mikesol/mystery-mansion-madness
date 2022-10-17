@@ -109,19 +109,43 @@
         </button>
       </div>
     </div>
-    <!---->
+    <!-- owner wait page -->
+    <div
+      id="owner-wait-screen"
+      class="absolute w-screen h-screen grid grid-cols-3 grid-rows-3 hidden"
+    >
+      <div
+        class="col-start-2 col-span-1 row-start-2 row-span-1 place-self-center"
+      >
+        <div class="font-creepster text-white text-center font-sans text-7xl">
+          Prepare!
+        </div>
+        <div class="bg-zinc-600/80 rounded-sm p-3 m-3">
+          <div class="text-white text-center">The game will start soon.</div>
+        </div>
+        <div class="flex justify-around">
+          <div class="lds-grid">
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+          </div>
+        </div>
+      </div>
+    </div>
     <!-- wait page -->
     <div
       id="wait-screen"
       class="absolute w-screen h-screen grid grid-cols-3 grid-rows-3 hidden"
     >
-      <div class="who-has-joined col-start-1 col-span-1 row-start-2 row-span-2">
-        <!--
-       <div><span class="bg-zinc-600/80 text-white">foo has joined!</span></div>
-       <div><span class="bg-zinc-600/80 text-white">barbarbar has joined!</span></div>
-       <div><span class="bg-zinc-600/80 text-white">bazzzzzzzzzz has joined!</span></div>
-     -->
-      </div>
+      <div
+        class="who-has-joined col-start-1 col-span-1 row-start-2 row-span-2"
+      ></div>
 
       <div
         class="col-start-2 col-span-1 row-start-2 row-span-1 place-self-center"
@@ -150,17 +174,43 @@
       </div>
     </div>
     <!---->
+    <!-- started page -->
+    <div
+      id="started-screen"
+      class="absolute w-screen h-screen grid grid-cols-1 grid-rows-1 hidden"
+    >
+      <div
+        class="col-start-1 col-span-1 row-start-1 row-span-1 place-self-center"
+      >
+        <div class="font-creepster text-white text-center font-sans text-7xl">
+          Oh No!
+        </div>
+        <div class="bg-zinc-600/80 rounded-sm p-3 m-3">
+          <div class="text-white text-center">
+            It looks like there's no room left on this ride. Why don't you start
+            your own?
+          </div>
+        </div>
+        <div class="flex">
+          <a
+            type="button"
+            href="https://joyride.fm"
+            class="text-white w-full text-center bg-gradient-to-r from-cyan-500 to-blue-500 hover:bg-gradient-to-bl focus:ring-4 focus:outline-none focus:ring-cyan-300 dark:focus:ring-cyan-800 font-medium rounded-lg text-sm px-5 py-2.5 text-center mr-2 mb-2"
+          >
+            Take a ride
+          </a>
+        </div>
+      </div>
+    </div>
+
     <!-- intruction page -->
     <div
       id="instruction-screen"
       class="absolute w-screen h-screen grid grid-cols-3 grid-rows-3 hidden"
     >
-      <div class="who-has-joined col-start-1 col-span-1 row-start-2 row-span-2">
-        <!--
-        <div><span class="bg-zinc-600/80 text-white">foo has joined!</span></div>
-        <div><span class="bg-zinc-600/80 text-white">barbarbar has joined!</span></div>
-        <div><span class="bg-zinc-600/80 text-white">bazzzzzzzzzz has joined!</span></div>
-      --></div>
+      <div
+        class="who-has-joined col-start-1 col-span-1 row-start-2 row-span-2"
+      ></div>
 
       <div
         class="col-start-2 col-span-1 row-start-2 row-span-1 place-self-center"
@@ -206,14 +256,6 @@
       id="practice-screen"
       class="absolute w-screen h-screen grid grid-cols-3 grid-rows-3 hidden"
     >
-      <div class="who-has-joined col-start-1 col-span-1 row-start-2 row-span-2">
-        <!--
-          <div><span class="bg-zinc-600/80 text-white">foo has joined!</span></div>
-          <div><span class="bg-zinc-600/80 text-white">barbarbar has joined!</span></div>
-          <div><span class="bg-zinc-600/80 text-white">bazzzzzzzzzz has joined!</span></div>
-        -->
-      </div>
-
       <div
         class="col-start-2 col-span-1 row-start-2 row-span-1 place-self-center"
       >
@@ -231,37 +273,6 @@
         </div>
       </div>
     </div>
-    <!-- practice -->
-    <div
-      id="practice-screen"
-      class="absolute w-screen h-screen grid grid-cols-3 grid-rows-3 hidden"
-    >
-      <div class="who-has-joined col-start-1 col-span-1 row-start-2 row-span-2">
-        <!--
-         <div><span class="bg-zinc-600/80 text-white">foo has joined!</span></div>
-         <div><span class="bg-zinc-600/80 text-white">barbarbar has joined!</span></div>
-         <div><span class="bg-zinc-600/80 text-white">bazzzzzzzzzz has joined!</span></div>
-       -->
-      </div>
-
-      <div
-        class="col-start-2 col-span-1 row-start-2 row-span-1 place-self-center"
-      >
-        <div class="font-creepster text-white text-center font-sans text-7xl">
-          Practice
-        </div>
-        <div class="flex justify-around">
-          <button
-            id="start-game-practice"
-            type="button"
-            class="font-bold text-gray-900 bg-gradient-to-r from-teal-200 to-lime-200 hover:bg-gradient-to-l hover:from-teal-200 hover:to-lime-200 focus:ring-4 focus:outline-none focus:ring-lime-200 dark:focus:ring-teal-700 font-medium rounded-lg text-sm px-5 py-2.5 text-center mr-2 mb-2"
-          >
-            Start
-          </button>
-        </div>
-      </div>
-    </div>
-
     <!-- spinner -->
     <div
       id="loading-spinner"

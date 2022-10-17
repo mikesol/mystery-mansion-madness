@@ -8,11 +8,15 @@ import {
   getDoc,
   getDocs,
   query,
+  onSnapshot,
   runTransaction,
 } from "firebase/firestore";
 import { makeid } from "../util/ids";
 import { auth, db } from "./init";
 const negMod = (x, n) => ((x % n) + n) % n;
+
+export const listen = ({ title, listener }) =>
+  onSnapshot(doc(db, "rides", title), listener);
 
 export const createGame = async () => {
   const title = makeid(6);
@@ -21,7 +25,7 @@ export const createGame = async () => {
     createdBy: auth.currentUser.uid,
   };
   console.log(title, payload, auth.currentUser);
-  console.log('creating game at', title);
+  console.log("creating game at", title);
   await setDoc(myDoc, payload);
   return { title };
 };
@@ -44,19 +48,25 @@ export const createScore = async ({ title, name, score }) => {
   });
 };
 
+export const setStart = async ({ title, startsAt }) => {
+  await setDoc(doc(db, "rides", title), {
+    startsAt,
+  });
+};
+
 export const claimPlayerLoop = async ({ title, name }) => {
   const docRef = doc(db, "rides", title);
   const claimPlayer = () =>
     runTransaction(db, async (transaction) => {
-      console.log('starting transaction', title, transaction);
+      console.log("starting transaction", title, transaction);
       const myDoc = await transaction.get(docRef);
-      console.log('got my doc');
+      console.log("got my doc");
       if (!myDoc.exists()) {
         throw "Document does not exist!";
       }
       const data = myDoc.data();
-      console.log('got doc transaction', data);
-      if (data.started) {
+      console.log("got doc transaction", data);
+      if (data.startsAt) {
         return false;
       }
       let i;
@@ -71,10 +81,10 @@ export const claimPlayerLoop = async ({ title, name }) => {
         toUpdate["player" + i] = auth.currentUser.uid;
         toUpdate["player" + i + "Name"] = name;
         toUpdate["player" + i + "Position"] = i;
-        console.log('updating', toUpdate);
+        console.log("updating", toUpdate);
         transaction.update(docRef, toUpdate);
       }
-      console.log('done with', i)
+      console.log("done with", i);
       return i;
     });
   let i = 0;
@@ -87,7 +97,7 @@ export const claimPlayerLoop = async ({ title, name }) => {
     }
     i++;
   }
-  console.log('returning', o);
+  console.log("returning", o);
   return o;
 };
 

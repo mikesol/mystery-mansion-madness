@@ -56,6 +56,7 @@ import {
   RAIL_ROTATION,
   OFF_SCREEN_M4,
   createMultiplier,
+  SIDES_CLOCKWISE,
 } from "./core/plane.js";
 import {
   createLaneTouchArea,
@@ -72,11 +73,16 @@ import {
 import { getAudioData } from "./io/soundfile";
 import { doSignIn } from "./firebase/auth";
 import { JUDGEMENT_CONSTANTS } from "./judgement/judgement";
-import { claimPlayerLoop, createGame } from "./firebase/firestore";
+import {
+  claimPlayerLoop,
+  createGame,
+  listen,
+  setStart,
+} from "./firebase/firestore";
 
 const md = new MobileDetect(window.navigator.userAgent);
 const IS_MOBILE = md.mobile() ? true : false;
-
+const START_DELAY = 3000;
 const negMod = (x, n) => ((x % n) + n) % n;
 const lerpyMcLerpLerp = (a, b, t) => a * (1 - t) + b * t;
 
@@ -85,7 +91,26 @@ const SHIFT_INSTRUCTION = {
   GO_RIGHT: 1,
 };
 
+const doTimeout = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
 const ROTATION_DURATION = 0.6;
+
+const showWhoHasJoined = (title, player) =>
+  listen({
+    title,
+    listener: async (doc) => {
+      const data = doc.data();
+      let html = "";
+      for (var i = 1; i < 9; i++) {
+        if (data["player" + i + "Name"] && i !== player) {
+          html += `<div><span class="bg-zinc-600/80 p-2 text-white">${
+            data["player" + i + "Name"]
+          } has joined!</span></div>`;
+        }
+      }
+      $(".who-has-joined").html(html);
+    },
+  });
 
 const makeGroup = ({ scene, side, groupId, multtxt }) => {
   // thin stuff out
@@ -103,7 +128,11 @@ const makeGroup = ({ scene, side, groupId, multtxt }) => {
   sideGroup.add(laneNoteMesh);
 
   const railNotes = [];
-  for (let i = 1.5 + 0.1 * groupId; i < 120.0; i += 1.6) {
+  for (
+    let i = 1.5 + 0.2 * [0, 4, 1, 6, 3, 7, 2, 5][groupId];
+    i < 120.0;
+    i += 1.6
+  ) {
     railNotes.push({ timing: i, column: RAIL_COLUMN.LEFT });
   }
   const { railNoteMesh, railNoteInfo, railNoteTable } = createRailNotes({
@@ -227,7 +256,7 @@ const main = async () => {
       );
     };
 
-  const doGame = async () => {
+  const doGame = async ({ player }) => {
     // textures
     const loader = new three.TextureLoader();
     const [t1x, t2x, t3x, t5x, t8x] = await Promise.all([
@@ -254,49 +283,49 @@ const main = async () => {
       makeGroup({
         scene,
         multtxt: t1x,
-        side: SIDES.CENTER,
+        side: SIDES_CLOCKWISE[negMod(player - 1, 8)],
         groupId: GROUPS.LOWEST,
       }),
       makeGroup({
         scene,
         multtxt: t2x,
-        side: SIDES.LEFT_SIDE,
+        side: SIDES_CLOCKWISE[negMod(player, 8)],
         groupId: GROUPS.LOW_LEFT,
       }),
       makeGroup({
         scene,
         multtxt: t3x,
-        side: SIDES.LEFT_ON_DECK,
+        side: SIDES_CLOCKWISE[negMod(player + 1, 8)],
         groupId: GROUPS.MID_LEFT,
       }),
       makeGroup({
         scene,
         multtxt: t5x,
-        side: SIDES.OFF_SCREEN,
+        side: SIDES_CLOCKWISE[negMod(player + 2, 8)],
         groupId: GROUPS.HIGH_LEFT,
       }),
       makeGroup({
         scene,
         multtxt: t8x,
-        side: SIDES.OFF_SCREEN,
+        side: SIDES_CLOCKWISE[negMod(player + 3, 8)],
         groupId: GROUPS.HIGHEST,
       }),
       makeGroup({
         scene,
         multtxt: t5x,
-        side: SIDES.OFF_SCREEN,
+        side: SIDES_CLOCKWISE[negMod(player + 4, 8)],
         groupId: GROUPS.HIGH_RIGHT,
       }),
       makeGroup({
         scene,
         multtxt: t3x,
-        side: SIDES.RIGHT_ON_DECK,
+        side: SIDES_CLOCKWISE[negMod(player + 5, 8)],
         groupId: GROUPS.MID_RIGHT,
       }),
       makeGroup({
         scene,
         multtxt: t2x,
-        side: SIDES.RIGHT_SIDE,
+        side: SIDES_CLOCKWISE[negMod(player + 6, 8)],
         groupId: GROUPS.LOW_RIGHT,
       }),
     ];
@@ -307,9 +336,9 @@ const main = async () => {
     let inRotationAnimation = false;
     let rotationAnimationDirection = undefined;
     let rotationAnimationStartsAt = undefined;
-    let mainGroup = ALL_GROUPS[0];
-    let leftSideGroup = ALL_GROUPS[1];
-    let rightSideGroup = ALL_GROUPS[7];
+    let leftSideGroup = ALL_GROUPS[negMod(player, 8)];
+    let mainGroup = ALL_GROUPS[negMod(player - 1, 8)];
+    let rightSideGroup = ALL_GROUPS[negMod(player - 2, 8)];
 
     const touchAreas = [
       createLaneTouchArea(LANE_TOUCH_AREA_COLUMN.FAR_LEFT),
@@ -704,7 +733,9 @@ const main = async () => {
   };
   const introScreen = $("#intro-screen");
   const friendScreen = $("#friend-screen");
-  const waitScreen = $("#wait-screen");
+  const waitForGameToStartScreen = $("#wait-screen");
+  const ownerWaitScreen = $("#owner-wait-screen");
+  const startedScreen = $("#started-screen");
   const practiceScreen = $("#practice-screen");
   const instructionScreen = $("#instruction-screen");
   const scoreGrid = $("#score-grid");
@@ -719,11 +750,10 @@ const main = async () => {
   const hashChange = async () => {
     routing.hash = window.location.hash;
     if (routing.hash.substring(0, 4) === "#/r/") {
+      // we have been invited to a game
       const title = routing.hash.substring(4);
-      //instructionScreen.addClass("hidden");
-      //await doGame({ audioDataPromise });
       const nameInput = $("#spooky-name-friend");
-      $("#start-game-friend").on("click", () => {
+      $("#start-game-friend").on("click", async () => {
         const name = nameInput.val();
         if (name.length < 3 || name.length > 16) {
           Swal.fire({
@@ -733,20 +763,59 @@ const main = async () => {
             confirmButtonText: "Got it",
           });
         } else {
-          claimPlayerPromise = claimPlayerLoop({ title, name });
           friendScreen.addClass("hidden");
-          waitScreen.removeClass("hidden");
+          introSpinner.removeClass("hidden");
+          claimPlayerPromise = claimPlayerLoop({ title, name });
+          const claimPlayerRes = await claimPlayerPromise;
+          if (claimPlayerRes === false) {
+            introSpinner.addClass("hidden");
+            startedScreen.removeClass("hidden");
+          } else {
+            introSpinner.addClass("hidden");
+            waitForGameToStartScreen.removeClass("hidden");
+            const unsubForJoin = showWhoHasJoined(title, claimPlayerRes);
+            let started = false;
+            let unsub;
+            unsub = listen({
+              title,
+              listener: async (doc) => {
+                const data = doc.data();
+                console.log(data);
+                if (data.startsAt && !started) {
+                  if (unsub) {
+                    unsub();
+                  }
+                  if (unsubForJoin) {
+                    unsubForJoin();
+                  }
+                  started = true;
+                  const timeNow = new Date().getTime();
+                  console.log('waiting', data.startsAt, timeNow, data.startsAt - timeNow);
+                  await doTimeout(data.startsAt > timeNow ? data.startsAt - timeNow : 0);
+                  waitForGameToStartScreen.addClass("hidden");
+                  scoreGrid.removeClass("hidden");
+                  await doGame({
+                    audioDataPromise,
+                    practice: false,
+                    player: claimPlayerRes,
+                  });
+                  await togglePlayBack({ audioDataPromise })();
+                }
+              },
+            });
+          }
         }
       });
       introSpinner.addClass("hidden");
       friendScreen.removeClass("hidden");
       ////
     } else if (routing.hash.substring(0, 3) === "#/p") {
+      // we are starting from scratch
       $("#start-game-practice").on("click", async () => {
         if (screenfull.isEnabled && IS_MOBILE) {
           screenfull.request();
         }
-        await doGame({ audioDataPromise, practice: true });
+        await doGame({ audioDataPromise, practice: true, player: 1 });
         practiceScreen.addClass("hidden");
         scoreGrid.removeClass("hidden");
         await togglePlayBack({ audioDataPromise })();
@@ -754,6 +823,7 @@ const main = async () => {
       introSpinner.addClass("hidden");
       practiceScreen.removeClass("hidden");
     } else {
+      // we are starting from scratch
       gamePromise = signInPromise.then(createGame);
       const nameInput = $("#spooky-name");
       $("#new-game").on("click", () => {
@@ -771,22 +841,52 @@ const main = async () => {
           );
           introScreen.addClass("hidden");
           instructionScreen.removeClass("hidden");
-          gamePromise.then(({title}) => {
-            $("#share-link").val(import.meta.env.PROD ? `https://joyride.fm/#/r/${title}` : `http://localhost:5173/#/r/${title}`);
+          let unsub;
+          Promise.all([gamePromise, claimPlayerPromise]).then(
+            ([{ title }, player]) => {
+              unsub = showWhoHasJoined(title, player);
+            }
+          );
+          gamePromise.then(({ title }) => {
+            $("#share-link").val(
+              import.meta.env.PROD
+                ? `https://joyride.fm/#/r/${title}`
+                : `http://localhost:5173/#/r/${title}`
+            );
             $("#share-button").removeClass("invisible");
             $("#share-button").addClass("visible");
           });
+          $("#start-game").on("click", async () => {
+            instructionScreen.addClass("hidden");
+            console.log("unsubscribing");
+            if (unsub) {
+              unsub();
+            }
+            if (screenfull.isEnabled && IS_MOBILE) {
+              screenfull.request();
+            }
+            console.log("showing owner wait screen");
+            ownerWaitScreen.removeClass("hidden");
+            const claimPlayerRes = await claimPlayerPromise;
+            console.log("starting as player", claimPlayerRes);
+            const starting = new Date();
+            gamePromise.then(({ title }) =>
+              setStart({ title, startsAt: starting.getTime() + START_DELAY })
+            );
+            console.log(`waiting ${START_DELAY} ms`);
+            await doTimeout(START_DELAY);
+            ownerWaitScreen.addClass("hidden");
+            scoreGrid.removeClass("hidden");
+            await doGame({
+              audioDataPromise,
+              practice: false,
+              player: claimPlayerRes,
+            });
+            await togglePlayBack({ audioDataPromise })();
+          });
         }
-        $("#start-game").on("click", async () => {
-          if (screenfull.isEnabled && IS_MOBILE) {
-            screenfull.request();
-          }
-          await doGame({ audioDataPromise, practice: false });
-          instructionScreen.addClass("hidden");
-          scoreGrid.removeClass("hidden");
-          await togglePlayBack({ audioDataPromise })();
-        });
       });
+
       introSpinner.addClass("hidden");
       introScreen.removeClass("hidden");
     }
@@ -797,6 +897,7 @@ const main = async () => {
       icon: "success",
       title: "Copied!",
       text: "The link is copied to your clipboard. Send it to up to 7 friends!",
+      timer: 2000,
       confirmButtonText: "Got it 👍",
     });
   });

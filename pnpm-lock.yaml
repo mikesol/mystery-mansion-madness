@@ -12,6 +12,7 @@ specifiers:
   eslint: ^8.25.0
   firebase: ^9.12.1
   flowbite: ^1.5.3
+  htmlhint: ^1.1.4
   jquery: ^3.6.1
   lil-gui: ^0.17.0
   mobile-detect: ^1.4.5
@@ -44,6 +45,7 @@ devDependencies:
   '@capacitor/cli': 4.3.0
   autoprefixer: 10.4.12_postcss@8.4.18
   eslint: 8.25.0
+  htmlhint: 1.1.4
   postcss: 8.4.18
   prettier: 2.7.1
   stats.js: 0.17.0
@@ -908,6 +910,10 @@ packages:
     engines: {node: '>=8'}
     dev: true
 
+  /async/3.2.3:
+    resolution: {integrity: sha512-spZRyzKL5l5BZQrr/6m/SqFdBN0q3OCI0f9rjfBzCMBIP4p75P620rR3gTmaksNOhmzgdxcaxdNfMy6anrbM0g==}
+    dev: true
+
   /at-least-node/1.0.0:
     resolution: {integrity: sha512-+q/t7Ekv1EDY2l6Gda6LLiX14rU9TV20Wa3ofeQmwPFZbOMo9DXrLbOjFaaclkXKWidIaopwAObQDqwWtGUjqg==}
     engines: {node: '>= 4.0.0'}
@@ -1717,6 +1723,22 @@ packages:
       function-bind: 1.1.1
     dev: true
 
+  /htmlhint/1.1.4:
+    resolution: {integrity: sha512-tSKPefhIaaWDk/vKxAOQbN+QwZmDeJCq3bZZGbJMoMQAfTjepudC+MkuT9MOBbuQI3dLLzDWbmU7fLV3JASC7Q==}
+    hasBin: true
+    dependencies:
+      async: 3.2.3
+      chalk: 4.1.2
+      commander: 9.4.1
+      glob: 7.2.3
+      is-glob: 4.0.3
+      node-fetch: 2.6.7
+      strip-json-comments: 3.1.0
+      xml: 1.0.1
+    transitivePeerDependencies:
+      - encoding
+    dev: true
+
   /http-parser-js/0.5.8:
     resolution: {integrity: sha512-SGeBX54F94Wgu5RH3X5jsDtf4eHyRogWX1XGT3b4HuW3tQPM4AaBzoUji/4AAJNXCEOWZ5O0DgZmJw1947gD5Q==}
     dev: false
@@ -2015,7 +2037,6 @@ packages:
         optional: true
     dependencies:
       whatwg-url: 5.0.0
-    dev: false
 
   /node-releases/2.0.6:
     resolution: {integrity: sha512-PiVXnNuFm5+iYkLBNeq5211hvO38y63T0i2KKh2KnUs3RpzJ+JtODFjkD8yjLwnDkTYF1eKXheUwdssR+NRZdg==}
@@ -2487,6 +2508,11 @@ packages:
     dependencies:
       ansi-regex: 5.0.1
 
+  /strip-json-comments/3.1.0:
+    resolution: {integrity: sha512-e6/d0eBu7gHtdCqFt0xJr642LdToM5/cN4Qb9DbHjVx1CP5RyeM+zH7pbecEmDv/lBqb0QH+6Uqq75rxFPkM0w==}
+    engines: {node: '>=8'}
+    dev: true
+
   /strip-json-comments/3.1.1:
     resolution: {integrity: sha512-6fPc+R4ihwqP6N/aIv2f1gMH8lOVtWQHoqC4yK6oSDVVocumAsfCqjkXnqiYMhmMwS/mEHLp7Vehlt3ql6lEig==}
     engines: {node: '>=8'}
@@ -2587,7 +2613,6 @@ packages:
 
   /tr46/0.0.3:
     resolution: {integrity: sha512-N3WMsuqV66lT30CrXNbEjx4GEwlow3v6rr4mCcv6prnfwhS01rkgyFdjPNBYd9br7LpXV1+Emh01fHnq2Gdgrw==}
-    dev: false
 
   /tree-kill/1.2.2:
     resolution: {integrity: sha512-L0Orpi8qGpRG//Nd+H90vFB+3iHnue1zSSGmNOOCh1GLJ7rUKVwV2HvijphGQS2UmhUZewS9VgvxYIdgr+fG1A==}
@@ -2668,7 +2693,6 @@ packages:
 
   /webidl-conversions/3.0.1:
     resolution: {integrity: sha512-2JAn3z8AR6rjK8Sm8orRC0h/bcl/DqL7tRPdGZ4I1CjdF+EaMLmYxBHyXuKL849eucPFhvBoxMsflfOb8kxaeQ==}
-    dev: false
 
   /websocket-driver/0.7.4:
     resolution: {integrity: sha512-b17KeDIQVjvb0ssuSDF2cYXSg2iztliJ4B9WdsuB6J952qCPKmnVq4DyW5motImXHDC1cBT/1UezrJVsKw5zjg==}
@@ -2689,7 +2713,6 @@ packages:
     dependencies:
       tr46: 0.0.3
       webidl-conversions: 3.0.1
-    dev: false
 
   /which/2.0.2:
     resolution: {integrity: sha512-BLI3Tl1TW3Pvl70l3yq3Y64i+awpwXqsGBYWkkqMtnbXgrMD+yj7rhW0kuEDxzJaYXGjEW5ogapKNMEKNMjibA==}
@@ -2727,6 +2750,10 @@ packages:
       utf-8-validate:
         optional: true
     dev: false
+
+  /xml/1.0.1:
+    resolution: {integrity: sha512-huCv9IH9Tcf95zuYCsQraZtWnJvBtLVE0QHMOs8bWyZAFZNDcYjsPq1nEx8jKA9y+Beo9v+7OBPRisQTjinQMw==}
+    dev: true
 
   /xml2js/0.4.23:
     resolution: {integrity: sha512-ySPiMjM0+pLDftHgXY4By0uswI3SPKLDw/i3UXbnO8M/p28zqexCUoPmQFrYD+/1BzhGJSs2i1ERWKJAtiLrug==}
