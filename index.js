@@ -16,6 +16,7 @@ import fiveX from "./assets/5xalpha.png";
 import eightX from "./assets/8xalpha.png";
 import Swal from "sweetalert2";
 import ClipboardJS from "clipboard";
+import MobileDetect from "mobile-detect";
 
 import {
   createLaneNotes,
@@ -69,6 +70,10 @@ import {
 } from "./core/scoring";
 import { getAudioData } from "./io/soundfile";
 import { doSignIn } from "./firebase/auth";
+import { JUDGEMENT_CONSTANTS } from "./judgement/judgement";
+
+const md = new MobileDetect(window.navigator.userAgent);
+const IS_MOBILE = md.mobile() ? true : false
 
 const negMod = (x, n) => ((x % n) + n) % n;
 const lerpyMcLerpLerp = (a, b, t) => a * (1 - t) + b * t;
@@ -497,7 +502,7 @@ const main = async () => {
       }
       const elapsedTime = audioContext.currentTime - beginTime;
 
-      for (const touch of event.changedTouches) {
+      for (const touch of (IS_MOBILE ? event.changedTouches : [event])) {
         pointerBuffer.x = (touch.clientX / window.innerWidth) * 2 - 1;
         pointerBuffer.y = -(touch.clientY / window.innerHeight) * 2 + 1;
         raycaster.setFromCamera(pointerBuffer, camera);
@@ -528,19 +533,22 @@ const main = async () => {
               : mainGroup.laneNoteInfo[activeLanes[touchIndex]];
           if (
             latestLaneNote &&
-            elapsedTime > latestLaneNote.timing - 0.1 &&
-            elapsedTime < latestLaneNote.timing + 0.1
+            elapsedTime >
+              latestLaneNote.timing -
+                JUDGEMENT_CONSTANTS.CONSIDERATION_WINDOW &&
+            elapsedTime <
+              latestLaneNote.timing + JUDGEMENT_CONSTANTS.CONSIDERATION_WINDOW
           ) {
             const untilPerfect = Math.abs(elapsedTime - latestLaneNote.timing);
             let scoreMultiplier = undefined;
-            if (untilPerfect < 0.016) {
+            if (untilPerfect < JUDGEMENT_CONSTANTS.PERFECTION) {
               comboCount += 1;
               scoreMultiplier;
               scoreSpan.text("Perfect!");
               comboSpan.text(comboCount);
               latestLaneNote.hasHit = true;
               scoreMultiplier = PERFECT_MULTIPLIER;
-            } else if (untilPerfect < 0.032) {
+            } else if (untilPerfect < JUDGEMENT_CONSTANTS.ALMOST) {
               comboCount += 1;
               scoreSpan.text("Nice");
               comboSpan.text(comboCount);
@@ -585,7 +593,11 @@ const main = async () => {
       }
     };
 
-    document.documentElement.addEventListener("touchstart", handleTouch);
+    if (!IS_MOBILE) {
+      document.documentElement.addEventListener("click", handleTouch);
+    } else {
+      document.documentElement.addEventListener("touchstart", handleTouch);
+    }
 
     const renderLoop = () => {
       raycaster.setFromCamera(pointerBuffer, camera);

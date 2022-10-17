@@ -30,6 +30,7 @@
     "flowbite": "^1.5.3",
     "jquery": "^3.6.1",
     "lil-gui": "^0.17.0",
+    "mobile-detect": "^1.4.5",
     "sweetalert2": "^11.5.2",
     "three": "^0.144.0"
   }

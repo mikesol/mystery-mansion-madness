@@ -14,6 +14,7 @@ specifiers:
   flowbite: ^1.5.3
   jquery: ^3.6.1
   lil-gui: ^0.17.0
+  mobile-detect: ^1.4.5
   postcss: ^8.4.18
   prettier: ^2.7.1
   stats.js: ^0.17.0
@@ -33,6 +34,7 @@ dependencies:
   flowbite: 1.5.3
   jquery: 3.6.1
   lil-gui: 0.17.0
+  mobile-detect: 1.4.5
   sweetalert2: 11.5.2
   three: 0.144.0
 
@@ -1962,6 +1964,10 @@ packages:
     engines: {node: '>=10'}
     hasBin: true
     dev: true
+
+  /mobile-detect/1.4.5:
+    resolution: {integrity: sha512-yc0LhH6tItlvfLBugVUEtgawwFU2sIe+cSdmRJJCTMZ5GEJyLxNyC/NIOAOGk67Fa8GNpOttO3Xz/1bHpXFD/g==}
+    dev: false
 
   /ms/2.1.2:
     resolution: {integrity: sha512-sGkPx+VjMtmA6MX27oA4FBFELFCZZ4S4XqeGOXCv68tT+jb3vk/RyaKWP0PTKyWtmLSM0b+adUTEvbs1PEaH2w==}
