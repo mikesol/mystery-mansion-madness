@@ -49,7 +49,7 @@ export const createScore = async ({ title, name, score }) => {
 };
 
 export const setStart = async ({ title, startsAt }) => {
-  await setDoc(doc(db, "rides", title), {
+  await updateDoc(doc(db, "rides", title), {
     startsAt,
   });
 };
@@ -117,7 +117,7 @@ export const getHighScores = async () => {
 
 export const bumpScore = async ({ title, player, score }) => {
   const toUpdate = {};
-  toUpdate[player + "Score"] = score;
+  toUpdate["player" + player + "Score"] = score;
   await updateDoc(doc(db, "rides", title), toUpdate);
 };
 
@@ -127,12 +127,12 @@ export const shiftPlayer =
     await runTransaction(db, async (transaction) => {
       const docRef = doc(db, "rides", title);
       const myDoc = await transaction.get(docRef);
-      const newPos = negMod(currentPosition + n, 8);
       if (!myDoc.exists()) {
         throw "Document does not exist!";
       }
       const data = myDoc.data();
-      const currentPosition = data[player + "Position"];
+      const currentPosition = data["player" + player + "Position"];
+      const newPos = negMod(currentPosition - 1 + n, 8) + 1;
       const toUpdate = {};
       for (var i = 1; i < 9; i++) {
         if (data["player" + i + "Position"] === newPos) {
@@ -140,8 +140,9 @@ export const shiftPlayer =
           break;
         }
       }
-      toUpdate[player + "Position"] = newPos;
-      transaction.update(myDoc, toUpdate);
+      toUpdate["player" + player + "Position"] = newPos;
+      console.log('updating', toUpdate);
+      transaction.update(docRef, toUpdate);
     });
   };
 

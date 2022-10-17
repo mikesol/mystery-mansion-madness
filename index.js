@@ -74,10 +74,14 @@ import { getAudioData } from "./io/soundfile";
 import { doSignIn } from "./firebase/auth";
 import { JUDGEMENT_CONSTANTS } from "./judgement/judgement";
 import {
+  bumpScore,
   claimPlayerLoop,
   createGame,
+  getGame,
   listen,
   setStart,
+  shiftLeft,
+  shiftRight,
 } from "./firebase/firestore";
 
 const md = new MobileDetect(window.navigator.userAgent);
@@ -224,6 +228,8 @@ const main = async () => {
     score: 0,
     highestCombo: 0,
   };
+  let gameLoopUnsub;
+  let gameScoreReportingInterval;
   let comboCount = 0;
   let gamePromise = null;
   let claimPlayerPromise = null;
@@ -232,7 +238,7 @@ const main = async () => {
   let isPlaying = false;
 
   const togglePlayBack =
-    ({ audioDataPromise }) =>
+    ({ audioDataPromise, title, player }) =>
     async () => {
       if (audioContext) {
         audioContext.close();
@@ -246,7 +252,41 @@ const main = async () => {
           const source = audioContext.createBufferSource();
           source.buffer = buffer;
           source.connect(audioContext.destination);
-          source.start(audioContext.currentTime);
+          source.start();
+          source.addEventListener("ended", async () => {
+            if (gameLoopUnsub) {
+              gameLoopUnsub();
+            }
+            if (gameScoreReportingInterval) {
+              clearInterval(gameScoreReportingInterval);
+            }
+            if (title) {
+              // get all of the scores
+              const game = await getGame({ title });
+              let finalScore = 0;
+              if (game) {
+                for (var i = 1; i < 9; i++) {
+                  if (game["player" + i + "Score"] && i !== player) {
+                    // add half of all other players' scores
+                    // plus on est de fou, plus on rit !
+                    finalScore += game["player" + i + "Score"] / 2.0;
+                  }
+                }
+              }
+              finalScore += score.score;
+              Swal.fire({
+                title: "Congrats!",
+                text: `Your final score is ${finalScore}.`,
+                imageUrl: "https://source.unsplash.com/QzpgqElvSiA/400x200",
+                imageWidth: 400,
+                imageHeight: 200,
+                imageAlt: "Custom image",
+                confirmButtonText: "Play again",
+              }).then(() => {
+                window.location = "https://joyride.fm";
+              });
+            }
+          });
           beginTime = audioContext.currentTime;
           isPlaying = true;
         },
@@ -255,7 +295,7 @@ const main = async () => {
       );
     };
 
-  const doGame = async ({ player }) => {
+  const doGame = async ({ player, practice, title }) => {
     // textures
     const loader = new three.TextureLoader();
     const [t1x, t2x, t3x, t5x, t8x] = await Promise.all([
@@ -331,13 +371,58 @@ const main = async () => {
 
     const currentRotationAnimationTargets = [];
 
-    let currentGroupIndex = 0;
+    let currentGroupIndex = player - 1;
     let inRotationAnimation = false;
     let rotationAnimationDirection = undefined;
     let rotationAnimationStartsAt = undefined;
     let leftSideGroup = ALL_GROUPS[negMod(player, 8)];
     let mainGroup = ALL_GROUPS[negMod(player - 1, 8)];
     let rightSideGroup = ALL_GROUPS[negMod(player - 2, 8)];
+
+    // fb
+    if (!practice) {
+      gameLoopUnsub = listen({
+        title,
+        listener: async (doc) => {
+          const data = doc.data();
+          // we'eve shifted
+          console.log(
+            "player",
+            player,
+            "newpos",
+            data["player" + player + "Position"],
+            "oldpos",
+            negMod(currentGroupIndex, 8) + 1,
+            "local",
+            doc.metadata.hasPendingWrites
+          );
+          if (
+            data["player" + player + "Position"] !==
+            negMod(currentGroupIndex, 8) + 1
+          ) {
+            // our positions have changed
+            const newIndex = negMod(
+              data["player" + player + "Position"] - 1,
+              8
+            );
+            // todo - make this more resilient to multiple shifts, ie if there are several in a row from all directions
+            // the game will still sort of work in this case, but it will not be totally accurate score-wise
+            console.log(
+              newIndex > currentGroupIndex ? "shifting left" : "shifting right"
+            );
+            doShift(
+              newIndex > currentGroupIndex
+                ? SHIFT_INSTRUCTION.GO_LEFT
+                : SHIFT_INSTRUCTION.GO_RIGHT
+            );
+          }
+        },
+      });
+      gameScoreReportingInterval = setInterval(() => {
+        bumpScore({ title, player, score: score.score });
+      }, 1500);
+    }
+    //
 
     const touchAreas = [
       createLaneTouchArea(LANE_TOUCH_AREA_COLUMN.FAR_LEFT),
@@ -385,6 +470,7 @@ const main = async () => {
 
     const doShift = (dir) => {
       const previousGroupIndex = currentGroupIndex;
+      console.log("doing shift from", previousGroupIndex);
       currentGroupIndex = negMod(
         dir === SHIFT_INSTRUCTION.GO_LEFT
           ? currentGroupIndex + 1
@@ -608,11 +694,17 @@ const main = async () => {
             scoreSpan.text(touchIndex === 4 ? "Shift Left!" : "Shift Right!");
             comboSpan.text("");
             latestRailNote.hasHit = true;
-            doShift(
-              touchIndex === 4
-                ? SHIFT_INSTRUCTION.GO_LEFT
-                : SHIFT_INSTRUCTION.GO_RIGHT
-            );
+            if (practice) {
+              // the firebase callback won't pick this up so we trigger it here
+              doShift(
+                touchIndex === 4
+                  ? SHIFT_INSTRUCTION.GO_LEFT
+                  : SHIFT_INSTRUCTION.GO_RIGHT
+              );
+            }
+            touchIndex === 4
+              ? shiftLeft({ title, player })
+              : shiftRight({ title, player });
           }
           /// end loop
         }
@@ -791,15 +883,22 @@ const main = async () => {
                   started = true;
                   const timeNow = new Date().getTime();
                   //console.log('waiting', data.startsAt, timeNow, data.startsAt - timeNow);
-                  await doTimeout(data.startsAt > timeNow ? data.startsAt - timeNow : 0);
+                  await doTimeout(
+                    data.startsAt > timeNow ? data.startsAt - timeNow : 0
+                  );
                   waitForGameToStartScreen.addClass("hidden");
                   scoreGrid.removeClass("hidden");
                   await doGame({
+                    title,
                     audioDataPromise,
                     practice: false,
                     player: claimPlayerRes,
                   });
-                  await togglePlayBack({ audioDataPromise })();
+                  await togglePlayBack({
+                    audioDataPromise,
+                    title,
+                    player: claimPlayerRes,
+                  })();
                 }
               },
             });
@@ -815,10 +914,11 @@ const main = async () => {
         if (screenfull.isEnabled && IS_MOBILE) {
           screenfull.request();
         }
-        await doGame({ audioDataPromise, practice: true, player: 2 });
+        const player = 2;
+        await doGame({ audioDataPromise, practice: true, player });
         practiceScreen.addClass("hidden");
         scoreGrid.removeClass("hidden");
-        await togglePlayBack({ audioDataPromise })();
+        await togglePlayBack({ audioDataPromise, player })();
       });
       introSpinner.addClass("hidden");
       practiceScreen.removeClass("hidden");
@@ -870,9 +970,11 @@ const main = async () => {
             const claimPlayerRes = await claimPlayerPromise;
             //console.log("starting as player", claimPlayerRes);
             const starting = new Date();
-            gamePromise.then(({ title }) =>
-              setStart({ title, startsAt: starting.getTime() + START_DELAY })
-            );
+            const { title } = await gamePromise;
+            await setStart({
+              title,
+              startsAt: starting.getTime() + START_DELAY,
+            });
             //console.log(`waiting ${START_DELAY} ms`);
             await doTimeout(START_DELAY);
             ownerWaitScreen.addClass("hidden");
@@ -881,8 +983,13 @@ const main = async () => {
               audioDataPromise,
               practice: false,
               player: claimPlayerRes,
+              title,
             });
-            await togglePlayBack({ audioDataPromise })();
+            await togglePlayBack({
+              audioDataPromise,
+              title,
+              player: claimPlayerRes,
+            })();
           });
         }
       });
