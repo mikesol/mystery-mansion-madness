@@ -95,6 +95,15 @@ const SHIFT_INSTRUCTION = {
   GO_RIGHT: 1,
 };
 
+const handleFullScreen = () => {
+  if (screenfull.isEnabled && IS_MOBILE) {
+    screenfull.request();
+    if (screen && screen.orientation && screen.orientation.lock) {
+      screen.orientation.lock("landscape").catch((e) => console.warn(e));
+    }
+  }
+};
+
 const doTimeout = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const ROTATION_DURATION = 0.6;
@@ -408,7 +417,8 @@ const main = async () => {
             // todo - make this more resilient to multiple shifts, ie if there are several in a row from all directions
             // the game will still sort of work in this case, but it will not be totally accurate score-wise
             const shiftingLeft =
-              (newIndex > currentGroupIndex && !(newIndex === 7 && currentGroupIndex === 0)) ||
+              (newIndex > currentGroupIndex &&
+                !(newIndex === 7 && currentGroupIndex === 0)) ||
               (newIndex === 0 && currentGroupIndex === 7);
             console.log(shiftingLeft ? "shifting left" : "shifting right");
             doShift(
@@ -919,9 +929,7 @@ const main = async () => {
     } else if (routing.hash.substring(0, 3) === "#/p") {
       // we are starting from scratch
       $("#start-game-practice").on("click", async () => {
-        if (screenfull.isEnabled && IS_MOBILE) {
-          screenfull.request();
-        }
+        handleFullScreen();
         const player = 2;
         await doGame({ audioDataPromise, practice: true, player });
         practiceScreen.addClass("hidden");
@@ -970,9 +978,7 @@ const main = async () => {
             if (unsub) {
               unsub();
             }
-            if (screenfull.isEnabled && IS_MOBILE) {
-              screenfull.request();
-            }
+            handleFullScreen();
             //console.log("showing owner wait screen");
             ownerWaitScreen.removeClass("hidden");
             const claimPlayerRes = await claimPlayerPromise;
