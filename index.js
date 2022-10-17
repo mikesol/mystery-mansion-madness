@@ -749,6 +749,8 @@ const main = async () => {
             // then set everything to false and empty the targets
             inRotationAnimation = false;
             rotationAnimationStartsAt = undefined;
+            // do not display shift any longer
+            scoreSpan.text("");
             currentRotationAnimationTargets.length = 0;
           } else {
             const NORMALIZED_TIME =
