@@ -780,7 +780,7 @@ const main = async () => {
               title,
               listener: async (doc) => {
                 const data = doc.data();
-                console.log(data);
+                //console.log(data);
                 if (data.startsAt && !started) {
                   if (unsub) {
                     unsub();
@@ -790,7 +790,7 @@ const main = async () => {
                   }
                   started = true;
                   const timeNow = new Date().getTime();
-                  console.log('waiting', data.startsAt, timeNow, data.startsAt - timeNow);
+                  //console.log('waiting', data.startsAt, timeNow, data.startsAt - timeNow);
                   await doTimeout(data.startsAt > timeNow ? data.startsAt - timeNow : 0);
                   waitForGameToStartScreen.addClass("hidden");
                   scoreGrid.removeClass("hidden");
@@ -858,22 +858,22 @@ const main = async () => {
           });
           $("#start-game").on("click", async () => {
             instructionScreen.addClass("hidden");
-            console.log("unsubscribing");
+            //console.log("unsubscribing");
             if (unsub) {
               unsub();
             }
             if (screenfull.isEnabled && IS_MOBILE) {
               screenfull.request();
             }
-            console.log("showing owner wait screen");
+            //console.log("showing owner wait screen");
             ownerWaitScreen.removeClass("hidden");
             const claimPlayerRes = await claimPlayerPromise;
-            console.log("starting as player", claimPlayerRes);
+            //console.log("starting as player", claimPlayerRes);
             const starting = new Date();
             gamePromise.then(({ title }) =>
               setStart({ title, startsAt: starting.getTime() + START_DELAY })
             );
-            console.log(`waiting ${START_DELAY} ms`);
+            //console.log(`waiting ${START_DELAY} ms`);
             await doTimeout(START_DELAY);
             ownerWaitScreen.addClass("hidden");
             scoreGrid.removeClass("hidden");
