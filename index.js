@@ -540,6 +540,7 @@ const main = async () => {
               latestLaneNote.timing + JUDGEMENT_CONSTANTS.CONSIDERATION_WINDOW
           ) {
             const untilPerfect = Math.abs(elapsedTime - latestLaneNote.timing);
+            //console.log("registers touch", untilPerfect, "ix", touchIndex, latestLaneNote.noteId);
             let scoreMultiplier = undefined;
             if (untilPerfect < JUDGEMENT_CONSTANTS.PERFECTION) {
               comboCount += 1;
@@ -679,9 +680,10 @@ const main = async () => {
             continue;
           }
           if (
-            elapsedTime > mainGroup.laneNoteInfo[activeLanes[i]].timing + 0.1 &&
+            elapsedTime > mainGroup.laneNoteInfo[activeLanes[i]].timing + JUDGEMENT_CONSTANTS.CONSIDERATION_WINDOW &&
             !mainGroup.laneNoteInfo[activeLanes[i]].hasHit
           ) {
+            //console.log("missed ix", mainGroup.laneNoteInfo[activeLanes[i]], "et", elapsedTime, mainGroup.laneNoteInfo[activeLanes[i]].timing);
             comboCount = 0;
             scoreSpan.text("Miss!");
             comboSpan.text(comboCount);
