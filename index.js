@@ -285,7 +285,7 @@ const main = async () => {
               finalScore += score.score;
               Swal.fire({
                 title: "Congrats!",
-                text: `Your final score is ${finalScore}.`,
+                text: `Your final score is ${finalScore.toFixed(1)}.`,
                 //imageUrl: "https://source.unsplash.com/QzpgqElvSiA/400x200",
                 // imageWidth: 400,
                 // imageHeight: 200,
@@ -395,16 +395,6 @@ const main = async () => {
         listener: async (doc) => {
           const data = doc.data();
           // we'eve shifted
-          console.log(
-            "player",
-            player,
-            "newpos",
-            data["player" + player + "Position"],
-            "oldpos",
-            negMod(currentGroupIndex, 8) + 1,
-            "local",
-            doc.metadata.hasPendingWrites
-          );
           if (
             data["player" + player + "Position"] !==
             negMod(currentGroupIndex, 8) + 1
@@ -420,7 +410,6 @@ const main = async () => {
               (newIndex > currentGroupIndex &&
                 !(newIndex === 7 && currentGroupIndex === 0)) ||
               (newIndex === 0 && currentGroupIndex === 7);
-            console.log(shiftingLeft ? "shifting left" : "shifting right");
             doShift(
               shiftingLeft
                 ? SHIFT_INSTRUCTION.GO_LEFT
@@ -481,7 +470,6 @@ const main = async () => {
 
     const doShift = (dir) => {
       const previousGroupIndex = currentGroupIndex;
-      console.log("doing shift from", previousGroupIndex);
       currentGroupIndex = negMod(
         dir === SHIFT_INSTRUCTION.GO_LEFT
           ? currentGroupIndex + 1
@@ -662,7 +650,6 @@ const main = async () => {
               latestLaneNote.timing + JUDGEMENT_CONSTANTS.CONSIDERATION_WINDOW
           ) {
             const untilPerfect = Math.abs(elapsedTime - latestLaneNote.timing);
-            //console.log("registers touch", untilPerfect, "ix", touchIndex, latestLaneNote.noteId);
             let scoreMultiplier = undefined;
             if (untilPerfect < JUDGEMENT_CONSTANTS.PERFECTION) {
               comboCount += 1;
@@ -733,7 +720,6 @@ const main = async () => {
 
       if (isPlaying) {
         const elapsedTime = audioContext.currentTime - beginTime;
-        // console.log(elapsedTime, mainGroup, leftSideGroup);
         if (inRotationAnimation) {
           if (rotationAnimationStartsAt === undefined) {
             rotationAnimationStartsAt = elapsedTime;
@@ -805,23 +791,23 @@ const main = async () => {
         rightSideGroup.laneNoteMesh.material.uniforms.uTime.value = elapsedTime;
         rightSideGroup.railNoteMesh.material.uniforms.uTime.value = elapsedTime;
         const index = Math.floor(elapsedTime * TABLE_DENSITY_PER_SECOND);
-        const activeLanes = mainGroup.laneNoteTable[index];
-        if (!activeLanes) {
+        const previousLanes = mainGroup.laneNoteTable[Math.max(index - 1, 0)];
+        if (!previousLanes) {
           // we're done
           // return without requesting another frame
           return;
         }
-        for (var i = 0; i < activeLanes.length; i++) {
-          if (activeLanes[i] === undefined) {
+        for (var i = 0; i < previousLanes.length; i++) {
+          if (previousLanes[i] === undefined) {
             continue;
           }
-          if (
+        // we assess a penalty if the previous lane is in the past
+        // and it has not been hit
+        if (
             elapsedTime >
-              mainGroup.laneNoteInfo[activeLanes[i]].timing +
-                JUDGEMENT_CONSTANTS.CONSIDERATION_WINDOW &&
-            !mainGroup.laneNoteInfo[activeLanes[i]].hasHit
+              mainGroup.laneNoteInfo[previousLanes[i]].timing &&
+            !mainGroup.laneNoteInfo[previousLanes[i]].hasHit
           ) {
-            //console.log("missed ix", mainGroup.laneNoteInfo[activeLanes[i]], "et", elapsedTime, mainGroup.laneNoteInfo[activeLanes[i]].timing);
             comboCount = 0;
             scoreSpan.text("Miss!");
             comboSpan.text(comboCount);
@@ -890,7 +876,6 @@ const main = async () => {
               title,
               listener: async (doc) => {
                 const data = doc.data();
-                //console.log(data);
                 if (data.startsAt && !started) {
                   if (unsub) {
                     unsub();
@@ -900,7 +885,6 @@ const main = async () => {
                   }
                   started = true;
                   const timeNow = new Date().getTime();
-                  //console.log('waiting', data.startsAt, timeNow, data.startsAt - timeNow);
                   await doTimeout(
                     data.startsAt > timeNow ? data.startsAt - timeNow : 0
                   );
@@ -974,22 +958,18 @@ const main = async () => {
           });
           $("#start-game").on("click", async () => {
             instructionScreen.addClass("hidden");
-            //console.log("unsubscribing");
             if (unsub) {
               unsub();
             }
             handleFullScreen();
-            //console.log("showing owner wait screen");
             ownerWaitScreen.removeClass("hidden");
             const claimPlayerRes = await claimPlayerPromise;
-            //console.log("starting as player", claimPlayerRes);
             const starting = new Date();
             const { title } = await gamePromise;
             await setStart({
               title,
               startsAt: starting.getTime() + START_DELAY,
             });
-            //console.log(`waiting ${START_DELAY} ms`);
             await doTimeout(START_DELAY);
             ownerWaitScreen.addClass("hidden");
             scoreGrid.removeClass("hidden");

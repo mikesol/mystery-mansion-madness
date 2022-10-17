@@ -11,7 +11,8 @@ import {
 } from "./plane.js";
 
 export const UNREACHABLE_POINT = 0.5;
-export const PENALTY_WINDOW_AFTER_JUDGEMENT = 0.15;
+// get rid of the window after judgement
+export const PENALTY_WINDOW_AFTER_JUDGEMENT = 0.0;
 export const TABLE_DENSITY_PER_SECOND = 10;
 export const LANE_NOTE_SCALE_X = HIGHWAY_SCALE_X_BASE / 4;
 export const LANE_NOTE_SCALE_Y = HIGHWAY_SCALE_Y;
@@ -80,9 +81,9 @@ const fillTable = ({ notes, columnToIndex, arrSize }) => {
       j < notes.length &&
       // the note has passed, meaning
       // that its time plus an unreachable margin is still less than quantized time
-      // for example, if the note's timing is 15.4 then it should linger until 15.9
+      // for example, if the note's timing is 15.4 then it should linger until 15.4
       // if quantized time is 0.0, we don't shift, but as soon as it is 16.0 we do
-      notes[j].timing + UNREACHABLE_POINT < QUANTIZED_TIME
+      notes[j].timing < QUANTIZED_TIME
     ) {
       j++;
     }
@@ -99,12 +100,7 @@ const fillTable = ({ notes, columnToIndex, arrSize }) => {
       const ix = columnToIndex(notes[k].column);
       subInfo[ix] =
         // if we do not have a note yet
-        subInfo[ix] === undefined ||
-        // the note plus the short penalty window has exceeded the current time
-        notes[subInfo[ix]].timing + PENALTY_WINDOW_AFTER_JUDGEMENT >
-          QUANTIZED_TIME
-          ? k
-          : subInfo[ix];
+        subInfo[ix] === undefined ? k : subInfo[ix];
       k++;
     }
     //console.log(notes.length,j,k,subInfo, k < notes.length ? notes[k].timing : undefined, QUANTIZED_TIME);
@@ -223,11 +219,7 @@ export const RAIL_COLUMN = {
 };
 
 const RAIL_NOTE_MATRIX = new three.Matrix4();
-RAIL_NOTE_MATRIX.setPosition(
-  0.0001,
-  0.0001,
-  RAIL_NOTE_POSITION_Z
-);
+RAIL_NOTE_MATRIX.setPosition(0.0001, 0.0001, RAIL_NOTE_POSITION_Z);
 export const createRailNotes = ({ notes: $notes, groupId }) => {
   const notes = [...$notes];
   const geometry = RAIL_NOTE_GEOMETRY();
