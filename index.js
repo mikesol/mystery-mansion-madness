@@ -115,7 +115,7 @@ const showWhoHasJoined = (title, player) =>
 const makeGroup = ({ scene, side, groupId, multtxt }) => {
   // thin stuff out
   const laneNotes = SPOOKY_LANES.filter(
-    (_, i) => i % 8 !== groupId && (i + 3) % 8 !== groupId
+    (x, i) => i % 8 !== groupId && (i + 3) % 8 !== groupId && x.timing > 1.0
   );
   const { laneNoteMesh, laneNoteInfo, laneNoteTable } = createLaneNotes({
     notes: laneNotes,
@@ -137,7 +137,6 @@ const makeGroup = ({ scene, side, groupId, multtxt }) => {
   }
   const { railNoteMesh, railNoteInfo, railNoteTable } = createRailNotes({
     notes: railNotes,
-    side,
     groupId,
   });
   railGroup.add(railNoteMesh);
@@ -278,54 +277,54 @@ const main = async () => {
 
     // scene
     const scene = new three.Scene();
-
+    const pm1 = player - 1;
     const ALL_GROUPS = [
       makeGroup({
         scene,
         multtxt: t1x,
-        side: SIDES_CLOCKWISE[negMod(player - 1, 8)],
+        side: SIDES_CLOCKWISE[negMod(0 - pm1, 8)],
         groupId: GROUPS.LOWEST,
       }),
       makeGroup({
         scene,
         multtxt: t2x,
-        side: SIDES_CLOCKWISE[negMod(player, 8)],
+        side: SIDES_CLOCKWISE[negMod(1 - pm1, 8)],
         groupId: GROUPS.LOW_LEFT,
       }),
       makeGroup({
         scene,
         multtxt: t3x,
-        side: SIDES_CLOCKWISE[negMod(player + 1, 8)],
+        side: SIDES_CLOCKWISE[negMod(2 - pm1, 8)],
         groupId: GROUPS.MID_LEFT,
       }),
       makeGroup({
         scene,
         multtxt: t5x,
-        side: SIDES_CLOCKWISE[negMod(player + 2, 8)],
+        side: SIDES_CLOCKWISE[negMod(3 - pm1, 8)],
         groupId: GROUPS.HIGH_LEFT,
       }),
       makeGroup({
         scene,
         multtxt: t8x,
-        side: SIDES_CLOCKWISE[negMod(player + 3, 8)],
+        side: SIDES_CLOCKWISE[negMod(4 - pm1, 8)],
         groupId: GROUPS.HIGHEST,
       }),
       makeGroup({
         scene,
         multtxt: t5x,
-        side: SIDES_CLOCKWISE[negMod(player + 4, 8)],
+        side: SIDES_CLOCKWISE[negMod(5 - pm1, 8)],
         groupId: GROUPS.HIGH_RIGHT,
       }),
       makeGroup({
         scene,
         multtxt: t3x,
-        side: SIDES_CLOCKWISE[negMod(player + 5, 8)],
+        side: SIDES_CLOCKWISE[negMod(6 - pm1, 8)],
         groupId: GROUPS.MID_RIGHT,
       }),
       makeGroup({
         scene,
         multtxt: t2x,
-        side: SIDES_CLOCKWISE[negMod(player + 6, 8)],
+        side: SIDES_CLOCKWISE[negMod(7 - pm1, 8)],
         groupId: GROUPS.LOW_RIGHT,
       }),
     ];
@@ -631,6 +630,7 @@ const main = async () => {
 
       if (isPlaying) {
         const elapsedTime = audioContext.currentTime - beginTime;
+        // console.log(elapsedTime, mainGroup, leftSideGroup);
         if (inRotationAnimation) {
           if (rotationAnimationStartsAt === undefined) {
             rotationAnimationStartsAt = elapsedTime;
@@ -815,7 +815,7 @@ const main = async () => {
         if (screenfull.isEnabled && IS_MOBILE) {
           screenfull.request();
         }
-        await doGame({ audioDataPromise, practice: true, player: 1 });
+        await doGame({ audioDataPromise, practice: true, player: 2 });
         practiceScreen.addClass("hidden");
         scoreGrid.removeClass("hidden");
         await togglePlayBack({ audioDataPromise })();
