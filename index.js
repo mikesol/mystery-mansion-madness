@@ -68,6 +68,7 @@ import {
   SCORE_MULTIPLIERS,
 } from "./core/scoring";
 import { getAudioData } from "./io/soundfile";
+import { doSignIn } from "./firebase/auth";
 
 const negMod = (x, n) => ((x % n) + n) % n;
 const lerpyMcLerpLerp = (a, b, t) => a * (1 - t) + b * t;
@@ -330,12 +331,11 @@ const main = async () => {
     };
 
     if (import.meta.env.DEV) {
-      gui.add(context, "toggleDims").name("Toggle Dims");
       gui.add(context, "toggleFullScreen").name("Toggle Full Screen");
       gui
         .add(context, "movementThreshold", 0.5, 1.5)
         .name("Movement Threshold");
-      gui.add(context, "togglePlayBack").name("Toggle Playback");
+      // gui.add(context, "togglePlayBack").name("Toggle Playback");
     }
     const tryResizeRendererToDisplay = () => {
       const canvas = renderer.domElement;
@@ -690,6 +690,7 @@ const main = async () => {
     requestAnimationFrame(renderLoop);
   };
   const introScreen = $("#intro-screen");
+  const practiceScreen = $("#practice-screen");
   const instructionScreen = $("#instruction-screen");
   const scoreGrid = $("#score-grid");
   const introSpinner = $("#loading-spinner");
@@ -701,8 +702,22 @@ const main = async () => {
     return { hash };
   })();
   const hashChange = async () => {
+    await doSignIn();
     routing.hash = window.location.hash;
-    if (routing.hash.substring(0, 4) !== "#/r/") {
+    if (routing.hash.substring(0, 4) === "#/r/") {
+      instructionScreen.addClass("hidden");
+      score;
+      await doGame({ audioDataPromise });
+    } else if (routing.hash.substring(0, 3) === "#/p") {
+      $("#start-game-practice").on("click", async () => {
+        await doGame({ audioDataPromise, practice: true });
+        practiceScreen.addClass("hidden");
+        scoreGrid.removeClass("hidden");
+        await togglePlayBack({ audioDataPromise })();
+      });
+      introSpinner.addClass("hidden");
+      practiceScreen.removeClass("hidden");
+    } else {
       const nameInput = $("#spooky-name");
       $("#new-game").on("click", () => {
         const enteredName = nameInput.val();
@@ -718,7 +733,7 @@ const main = async () => {
           instructionScreen.removeClass("hidden");
         }
         $("#start-game").on("click", async () => {
-          await doGame({ audioDataPromise });
+          await doGame({ audioDataPromise, practice: false });
           instructionScreen.addClass("hidden");
           scoreGrid.removeClass("hidden");
           await togglePlayBack({ audioDataPromise })();
@@ -726,10 +741,6 @@ const main = async () => {
       });
       introSpinner.addClass("hidden");
       introScreen.removeClass("hidden");
-    } else if (routing.hash.substring(0, 4) === "#/r/") {
-      instructionScreen.addClass("hidden");
-      score;
-      await doGame({ audioDataPromise });
     }
   };
   new ClipboardJS(".clippy");
