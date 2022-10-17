@@ -21,8 +21,12 @@
       id="score-grid"
       class="pointer-events-none absolute w-screen h-screen grid grid-cols-3 grid-rows-3 hidden"
     >
-      <div class="pointer-events-none	col-start-2 col-span-1 row-start-1 row-span-1">
-        <div class="pointer-events-none	 text-white text-center font-sans text-sm">
+      <div
+        class="pointer-events-none col-start-2 col-span-1 row-start-1 row-span-1"
+      >
+        <div
+          class="pointer-events-none text-white text-center font-sans text-sm"
+        >
           Score: <span id="real-score">0.0</span>
         </div>
       </div>
@@ -72,6 +76,80 @@
         </button>
       </div>
     </div>
+    <!-- friend page -->
+    <div
+      id="friend-screen"
+      class="absolute w-screen h-screen grid grid-cols-1 grid-rows-1 hidden"
+    >
+      <div
+        class="col-start-1 col-span-1 row-start-1 row-span-1 place-self-center"
+      >
+        <div class="font-creepster text-white text-center font-sans text-7xl">
+          Mystery Mansion Madness!
+        </div>
+        <div class="mb-6">
+          <label
+            for="spooky-friend-name"
+            class="block mb-2 text-sm font-medium text-white"
+            >Those who fear me call me...</label
+          >
+          <input
+            id="spooky-name-friend"
+            class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+            placeholder="Glenn Ghould"
+            required
+          />
+        </div>
+        <button
+          id="start-game-friend"
+          type="button"
+          class="text-gray-900 bg-gradient-to-r from-red-200 via-red-300 to-yellow-200 hover:bg-gradient-to-bl focus:ring-4 focus:outline-none focus:ring-red-100 dark:focus:ring-red-400 font-medium rounded-lg text-sm px-5 py-2.5 text-center mr-2 mb-2"
+        >
+          Join game
+        </button>
+      </div>
+    </div>
+    <!---->
+    <!-- wait page -->
+    <div
+      id="wait-screen"
+      class="absolute w-screen h-screen grid grid-cols-3 grid-rows-3 hidden"
+    >
+      <div class="who-has-joined col-start-1 col-span-1 row-start-2 row-span-2">
+        <!--
+       <div><span class="bg-zinc-600/80 text-white">foo has joined!</span></div>
+       <div><span class="bg-zinc-600/80 text-white">barbarbar has joined!</span></div>
+       <div><span class="bg-zinc-600/80 text-white">bazzzzzzzzzz has joined!</span></div>
+     -->
+      </div>
+
+      <div
+        class="col-start-2 col-span-1 row-start-2 row-span-1 place-self-center"
+      >
+        <div class="font-creepster text-white text-center font-sans text-7xl">
+          Be Afraid!
+        </div>
+        <div class="bg-zinc-600/80 rounded-sm p-3 m-3">
+          <div class="text-white text-center">
+            Your (g)host will let you in soon!
+          </div>
+        </div>
+        <div class="flex justify-around">
+          <div class="lds-grid">
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!---->
     <!-- intruction page -->
     <div
       id="instruction-screen"
@@ -106,6 +184,7 @@
             value="https://github.com/mikesol"
           />
           <button
+            id="share-button"
             type="button"
             data-clipboard-target="#share-link"
             class="clippy text-white bg-gradient-to-r from-cyan-500 to-blue-500 hover:bg-gradient-to-bl focus:ring-4 focus:outline-none focus:ring-cyan-300 dark:focus:ring-cyan-800 font-medium rounded-lg text-sm px-5 py-2.5 text-center mr-2 mb-2"
@@ -152,49 +231,28 @@
         </div>
       </div>
     </div>
-    <!-- intruction page -->
+    <!-- practice -->
     <div
-      id="instruction-screen"
+      id="practice-screen"
       class="absolute w-screen h-screen grid grid-cols-3 grid-rows-3 hidden"
     >
       <div class="who-has-joined col-start-1 col-span-1 row-start-2 row-span-2">
         <!--
-          <div><span class="bg-zinc-600/80 text-white">foo has joined!</span></div>
-          <div><span class="bg-zinc-600/80 text-white">barbarbar has joined!</span></div>
-          <div><span class="bg-zinc-600/80 text-white">bazzzzzzzzzz has joined!</span></div>
-        -->
+         <div><span class="bg-zinc-600/80 text-white">foo has joined!</span></div>
+         <div><span class="bg-zinc-600/80 text-white">barbarbar has joined!</span></div>
+         <div><span class="bg-zinc-600/80 text-white">bazzzzzzzzzz has joined!</span></div>
+       -->
       </div>
 
       <div
         class="col-start-2 col-span-1 row-start-2 row-span-1 place-self-center"
       >
         <div class="font-creepster text-white text-center font-sans text-7xl">
-          Instructions
-        </div>
-        <div class="bg-zinc-600/80 rounded-sm p-3 m-3">
-          <div class="text-white text-center">
-            Play alone, or invite up to seven friends!
-          </div>
-          <div class="text-white text-center">
-            When you're ready to start, press
-            <span class="font-bold">Start</span>.
-          </div>
+          Practice
         </div>
         <div class="flex justify-around">
-          <input
-            type="hidden"
-            id="share-link"
-            value="https://github.com/mikesol"
-          />
           <button
-            type="button"
-            data-clipboard-target="#share-link"
-            class="clippy text-white bg-gradient-to-r from-cyan-500 to-blue-500 hover:bg-gradient-to-bl focus:ring-4 focus:outline-none focus:ring-cyan-300 dark:focus:ring-cyan-800 font-medium rounded-lg text-sm px-5 py-2.5 text-center mr-2 mb-2"
-          >
-            Get link for friends
-          </button>
-          <button
-            id="start-game"
+            id="start-game-practice"
             type="button"
             class="font-bold text-gray-900 bg-gradient-to-r from-teal-200 to-lime-200 hover:bg-gradient-to-l hover:from-teal-200 hover:to-lime-200 focus:ring-4 focus:outline-none focus:ring-lime-200 dark:focus:ring-teal-700 font-medium rounded-lg text-sm px-5 py-2.5 text-center mr-2 mb-2"
           >
@@ -203,6 +261,7 @@
         </div>
       </div>
     </div>
+
     <!-- spinner -->
     <div
       id="loading-spinner"

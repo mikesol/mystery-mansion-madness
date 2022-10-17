@@ -72,6 +72,7 @@ import {
 import { getAudioData } from "./io/soundfile";
 import { doSignIn } from "./firebase/auth";
 import { JUDGEMENT_CONSTANTS } from "./judgement/judgement";
+import { claimPlayerLoop, createGame } from "./firebase/firestore";
 
 const md = new MobileDetect(window.navigator.userAgent);
 const IS_MOBILE = md.mobile() ? true : false;
@@ -187,12 +188,17 @@ const main = async () => {
     eruda.init();
   }
 
+  // sign in
+  const signInPromise = doSignIn();
+
   // top-level lets and consts
   const score = {
     score: 0,
     highestCombo: 0,
   };
   let comboCount = 0;
+  let gamePromise = null;
+  let claimPlayerPromise = null;
   let audioContext = null;
   let beginTime = null;
   let isPlaying = false;
@@ -221,7 +227,7 @@ const main = async () => {
       );
     };
 
-  const doGame = async ({ audioDataPromise }) => {
+  const doGame = async () => {
     // textures
     const loader = new three.TextureLoader();
     const [t1x, t2x, t3x, t5x, t8x] = await Promise.all([
@@ -697,6 +703,8 @@ const main = async () => {
     requestAnimationFrame(renderLoop);
   };
   const introScreen = $("#intro-screen");
+  const friendScreen = $("#friend-screen");
+  const waitScreen = $("#wait-screen");
   const practiceScreen = $("#practice-screen");
   const instructionScreen = $("#instruction-screen");
   const scoreGrid = $("#score-grid");
@@ -709,12 +717,30 @@ const main = async () => {
     return { hash };
   })();
   const hashChange = async () => {
-    await doSignIn();
     routing.hash = window.location.hash;
     if (routing.hash.substring(0, 4) === "#/r/") {
-      instructionScreen.addClass("hidden");
-      score;
-      await doGame({ audioDataPromise });
+      const title = routing.hash.substring(4);
+      //instructionScreen.addClass("hidden");
+      //await doGame({ audioDataPromise });
+      const nameInput = $("#spooky-name-friend");
+      $("#start-game-friend").on("click", () => {
+        const name = nameInput.val();
+        if (name.length < 3 || name.length > 16) {
+          Swal.fire({
+            title: "Gloups!",
+            text: "Names must be between 3 and 16 characters",
+            icon: "error",
+            confirmButtonText: "Got it",
+          });
+        } else {
+          claimPlayerPromise = claimPlayerLoop({ title, name });
+          friendScreen.addClass("hidden");
+          waitScreen.removeClass("hidden");
+        }
+      });
+      introSpinner.addClass("hidden");
+      friendScreen.removeClass("hidden");
+      ////
     } else if (routing.hash.substring(0, 3) === "#/p") {
       $("#start-game-practice").on("click", async () => {
         if (screenfull.isEnabled && IS_MOBILE) {
@@ -728,10 +754,11 @@ const main = async () => {
       introSpinner.addClass("hidden");
       practiceScreen.removeClass("hidden");
     } else {
+      gamePromise = signInPromise.then(createGame);
       const nameInput = $("#spooky-name");
       $("#new-game").on("click", () => {
-        const enteredName = nameInput.val();
-        if (enteredName.length < 3 || enteredName.length > 16) {
+        const name = nameInput.val();
+        if (name.length < 3 || name.length > 16) {
           Swal.fire({
             title: "Gloups!",
             text: "Names must be between 3 and 16 characters",
@@ -739,8 +766,16 @@ const main = async () => {
             confirmButtonText: "Got it",
           });
         } else {
+          claimPlayerPromise = gamePromise.then(({ title }) =>
+            claimPlayerLoop({ title, name })
+          );
           introScreen.addClass("hidden");
           instructionScreen.removeClass("hidden");
+          gamePromise.then(({title}) => {
+            $("#share-link").val(import.meta.env.PROD ? `https://joyride.fm/#/r/${title}` : `http://localhost:5173/#/r/${title}`);
+            $("#share-button").removeClass("invisible");
+            $("#share-button").addClass("visible");
+          });
         }
         $("#start-game").on("click", async () => {
           if (screenfull.isEnabled && IS_MOBILE) {

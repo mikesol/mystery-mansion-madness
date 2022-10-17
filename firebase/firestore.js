@@ -5,24 +5,90 @@ import {
   updateDoc,
   orderBy,
   limit,
-  deleteField,
+  getDoc,
   getDocs,
   query,
   runTransaction,
 } from "firebase/firestore";
-import { db } from "./init";
+import { makeid } from "../util/ids";
+import { auth, db } from "./init";
+const negMod = (x, n) => ((x % n) + n) % n;
 
-export const createGame = async ({ title, createdBy }) => {
-  await setDoc(doc(db, "rides", title), {
-    createdBy,
-  });
+export const createGame = async () => {
+  const title = makeid(6);
+  const myDoc = doc(db, "rides", title);
+  const payload = {
+    createdBy: auth.currentUser.uid,
+  };
+  console.log(title, payload, auth.currentUser);
+  console.log('creating game at', title);
+  await setDoc(myDoc, payload);
+  return { title };
 };
 
+export const getGame = async ({ title }) => {
+  const myDoc = doc(db, "rides", title);
+  const docSnap = await getDoc(myDoc);
+
+  if (docSnap.exists()) {
+    return docSnap.data();
+  } else {
+    // doc.data() will be undefined in this case
+    return undefined;
+  }
+};
 export const createScore = async ({ title, name, score }) => {
   await setDoc(doc(db, "scores", title), {
     name,
     score,
   });
+};
+
+export const claimPlayerLoop = async ({ title, name }) => {
+  const docRef = doc(db, "rides", title);
+  const claimPlayer = () =>
+    runTransaction(db, async (transaction) => {
+      console.log('starting transaction', title, transaction);
+      const myDoc = await transaction.get(docRef);
+      console.log('got my doc');
+      if (!myDoc.exists()) {
+        throw "Document does not exist!";
+      }
+      const data = myDoc.data();
+      console.log('got doc transaction', data);
+      if (data.started) {
+        return false;
+      }
+      let i;
+      for (var j = 1; j < 9; j++) {
+        if (!data["player" + j]) {
+          i = j;
+          break;
+        }
+      }
+      if (i !== undefined) {
+        const toUpdate = {};
+        toUpdate["player" + i] = auth.currentUser.uid;
+        toUpdate["player" + i + "Name"] = name;
+        toUpdate["player" + i + "Position"] = i;
+        console.log('updating', toUpdate);
+        transaction.update(docRef, toUpdate);
+      }
+      console.log('done with', i)
+      return i;
+    });
+  let i = 0;
+  let o;
+  // 8 is the max tries we can possibly do for an 8-player game, cap at that
+  while (i < 8) {
+    o = await claimPlayer();
+    if (o !== undefined) {
+      break;
+    }
+    i++;
+  }
+  console.log('returning', o);
+  return o;
 };
 
 export const getHighScores = async () => {
@@ -39,90 +105,36 @@ export const getHighScores = async () => {
   return highScores;
 };
 
-export const claimPlayer = async ({ title, player, uid }) => {
-  const toUpdate = {};
-  toUpdate[player] = uid;
-  await updateDoc(doc(db, "rides", title), toUpdate);
-};
-
 export const bumpScore = async ({ title, player, score }) => {
   const toUpdate = {};
   toUpdate[player + "Score"] = score;
   await updateDoc(doc(db, "rides", title), toUpdate);
 };
 
-export const shiftLeft = async ({ title, player }) => {
-  await runTransaction(db, async (transaction) => {
-    const docRef = doc(db, "rides", title);
-    const myDoc = await transaction.get(docRef);
-    if (!myDoc.exists()) {
-      throw "Document does not exist!";
-    }
-    const data = myDoc.data();
-    const currentLeft = data[player + "Left"];
-    const currentRight = data[player + "Right"];
-    const leftLeft = currentLeft ? data[currentLeft + "Left"] : undefined;
-    const toUpdate = {};
-    if (leftLeft) {
-      toUpdate[player + "Left"] = leftLeft;
-    }
-    if (currentLeft) {
-      toUpdate[player + "Right"] = currentLeft;
-      toUpdate[currentLeft + "Left"] = player;
-      if (currentRight) {
-        toUpdate[currentLeft + "Right"] = currentRight;
-      } else {
-        toUpdate[currentLeft + "Right"] = deleteField();
+export const shiftPlayer =
+  (n) =>
+  async ({ title, player }) => {
+    await runTransaction(db, async (transaction) => {
+      const docRef = doc(db, "rides", title);
+      const myDoc = await transaction.get(docRef);
+      const newPos = negMod(currentPosition + n, 8);
+      if (!myDoc.exists()) {
+        throw "Document does not exist!";
       }
-    } else {
-      toUpdate[player + "Right"] = deleteField();
-    }
-    if (currentRight) {
-      if (currentLeft) {
-        toUpdate[currentRight + "Left"] = currentLeft;
-      } else {
-        toUpdate[currentRight + "Left"] = deleteField();
+      const data = myDoc.data();
+      const currentPosition = data[player + "Position"];
+      const toUpdate = {};
+      for (var i = 1; i < 9; i++) {
+        if (data["player" + i + "Position"] === newPos) {
+          toUpdate["player" + i + "Position"] = currentPosition;
+          break;
+        }
       }
-    }
+      toUpdate[player + "Position"] = newPos;
+      transaction.update(myDoc, toUpdate);
+    });
+  };
 
-    transaction.update(docRef, toUpdate);
-  });
-};
+export const shiftLeft = shiftPlayer(1);
 
-export const shiftRight = async ({ title, player }) => {
-  await runTransaction(db, async (transaction) => {
-    const docRef = doc(db, "rides", title);
-    const myDoc = await transaction.get(docRef);
-    if (!myDoc.exists()) {
-      throw "Document does not exist!";
-    }
-    const data = myDoc.data();
-    const currentRight = data[player + "Right"];
-    const currentLeft = data[player + "Left"];
-    const rightRight = currentRight ? data[currentRight + "Right"] : undefined;
-    const toUpdate = {};
-    if (rightRight) {
-      toUpdate[player + "Right"] = rightRight;
-    }
-    if (currentRight) {
-      toUpdate[player + "Left"] = currentRight;
-      toUpdate[currentRight + "Right"] = player;
-      if (currentLeft) {
-        toUpdate[currentRight + "Left"] = currentLeft;
-      } else {
-        toUpdate[currentRight + "Left"] = deleteField();
-      }
-    } else {
-      toUpdate[player + "Left"] = deleteField();
-    }
-    if (currentLeft) {
-      if (currentRight) {
-        toUpdate[currentLeft + "Right"] = currentRight;
-      } else {
-        toUpdate[currentLeft + "Right"] = deleteField();
-      }
-    }
-
-    transaction.update(docRef, toUpdate);
-  });
-};
+export const shiftRight = shiftPlayer(-1);
