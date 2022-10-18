@@ -860,7 +860,7 @@ const main = async () => {
           // we assess a penalty if the previous lane is in the past
           // and it has not been hit
           if (
-            elapsedTime > (mainGroup.laneNoteInfo[previousLanes[i]].timing + JUDGEMENT_CONSTANTS.CONSIDERATION_WINDOW) &&
+            elapsedTime > mainGroup.laneNoteInfo[previousLanes[i]].timing &&
             !mainGroup.laneNoteInfo[previousLanes[i]].hasHit
           ) {
             comboCount = 0;
