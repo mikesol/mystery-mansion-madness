@@ -850,7 +850,8 @@ const main = async () => {
         rightSideGroup.laneNoteMesh.material.uniforms.uTime.value = elapsedTime;
         rightSideGroup.railNoteMesh.material.uniforms.uTime.value = elapsedTime;
         const index = Math.floor(elapsedTime * TABLE_DENSITY_PER_SECOND);
-        const previousLanes = mainGroup.laneNoteTable[Math.max(index - REWIND_FACTOR, 0)];
+        const previousLanes =
+          mainGroup.laneNoteTable[Math.max(index - REWIND_FACTOR, 0)];
         if (!previousLanes) {
           // we're done
           // return without requesting another frame
@@ -863,7 +864,9 @@ const main = async () => {
           // we assess a penalty if the previous lane is in the past
           // and it has not been hit
           if (
-            elapsedTime > mainGroup.laneNoteInfo[previousLanes[i]].timing &&
+            elapsedTime >
+              mainGroup.laneNoteInfo[previousLanes[i]].timing +
+                JUDGEMENT_CONSTANTS.CONSIDERATION_WINDOW &&
             !mainGroup.laneNoteInfo[previousLanes[i]].hasHit
           ) {
             comboCount = 0;
