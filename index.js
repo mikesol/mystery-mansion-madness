@@ -87,6 +87,9 @@ import {
   shiftRight,
 } from "./firebase/firestore";
 
+// how far in the back we look to disqualify something as a miss
+// change this is the TABLE_DENSITY_FACTOR is no longer 10
+const REWIND_FACTOR = 4;
 const md = new MobileDetect(window.navigator.userAgent);
 const IS_MOBILE = md.mobile() ? true : false;
 const START_DELAY = 3000;
@@ -847,7 +850,7 @@ const main = async () => {
         rightSideGroup.laneNoteMesh.material.uniforms.uTime.value = elapsedTime;
         rightSideGroup.railNoteMesh.material.uniforms.uTime.value = elapsedTime;
         const index = Math.floor(elapsedTime * TABLE_DENSITY_PER_SECOND);
-        const previousLanes = mainGroup.laneNoteTable[Math.max(index - 1, 0)];
+        const previousLanes = mainGroup.laneNoteTable[Math.max(index - REWIND_FACTOR, 0)];
         if (!previousLanes) {
           // we're done
           // return without requesting another frame
