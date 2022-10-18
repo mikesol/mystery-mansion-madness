@@ -12,4 +12,5 @@ assets/8x.png filter=lfs diff=lfs merge=lfs -text
 assets/8xalpha.png filter=lfs diff=lfs merge=lfs -text
 assets/mansion.jpeg filter=lfs diff=lfs merge=lfs -text
 assets/halloween.mp3 filter=lfs diff=lfs merge=lfs -text
+assets/halloween2.mp3 filter=lfs diff=lfs merge=lfs -text
 favicon.ico filter=lfs diff=lfs merge=lfs -text
