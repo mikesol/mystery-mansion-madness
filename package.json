@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "rm -rf dist && mkdir dist && vite build",
+    "build": "rm -rf dist && mkdir dist && vite build && cap sync",
     "lint": "htmlhint index.html && eslint \"io/**\" \"players/**\" \"core/**\" \"firebase/**\" index.js",
     "preview": "vite preview"
   },
