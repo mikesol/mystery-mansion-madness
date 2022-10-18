@@ -21,10 +21,14 @@
     "vite": "^3.1.0"
   },
   "dependencies": {
+    "@awesome-cordova-plugins/android-full-screen": "^6.0.1",
+    "@awesome-cordova-plugins/core": "^6.0.1",
     "@capacitor/android": "^4.3.0",
     "@capacitor/core": "^4.3.0",
     "@capacitor/ios": "^4.3.0",
+    "@capacitor/status-bar": "^4.0.1",
     "clipboard": "^2.0.11",
+    "cordova-plugin-fullscreen": "^1.3.0",
     "double-ended-queue": "2.1.0-0",
     "eruda": "^2.5.0",
     "firebase": "^9.12.1",
@@ -32,6 +36,7 @@
     "jquery": "^3.6.1",
     "lil-gui": "^0.17.0",
     "mobile-detect": "^1.4.5",
+    "rxjs": "^7.5.7",
     "screenfull": "^6.0.2",
     "sweetalert2": "^11.5.2",
     "three": "^0.144.0"

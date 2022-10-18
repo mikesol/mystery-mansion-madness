@@ -1,5 +1,6 @@
 "use strict";
 
+import { AndroidFullScreen } from "@awesome-cordova-plugins/android-full-screen";
 import GUI from "lil-gui";
 import * as eruda from "eruda";
 import "flowbite";
@@ -178,11 +179,13 @@ const makeGroup = ({ scene, side, groupId, multtxt }) => {
 
   sideGroup.add(laneNoteMesh);
 
+  const quarterIs = 60.0 / 140.0;
+  const eightBeatsAre = quarterIs * 8.0;
   const railNotes = [];
   for (
-    let i = 1.5 + 0.2 * [0, 4, 1, 6, 3, 7, 2, 5][groupId];
+    let i = eightBeatsAre + quarterIs * [0, 4, 1, 6, 3, 7, 2, 5][groupId];
     i < 120.0;
-    i += 1.6
+    i += eightBeatsAre
   ) {
     railNotes.push({ timing: i, column: RAIL_COLUMN.LEFT });
   }
@@ -266,7 +269,9 @@ const main = async () => {
     document.body.appendChild(stats.dom);
     eruda.init();
   }
-
+  AndroidFullScreen.isImmersiveModeSupported()
+    .then(() => AndroidFullScreen.immersiveMode())
+    .catch(console.warn);
   // sign in
   const signInPromise = doSignIn();
 

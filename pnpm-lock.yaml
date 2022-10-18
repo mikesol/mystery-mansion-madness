@@ -1,12 +1,16 @@
 lockfileVersion: 5.4
 
 specifiers:
+  '@awesome-cordova-plugins/android-full-screen': ^6.0.1
+  '@awesome-cordova-plugins/core': ^6.0.1
   '@capacitor/android': ^4.3.0
   '@capacitor/cli': ^4.3.0
   '@capacitor/core': ^4.3.0
   '@capacitor/ios': ^4.3.0
+  '@capacitor/status-bar': ^4.0.1
   autoprefixer: ^10.4.12
   clipboard: ^2.0.11
+  cordova-plugin-fullscreen: ^1.3.0
   double-ended-queue: 2.1.0-0
   eruda: ^2.5.0
   eslint: ^8.25.0
@@ -18,6 +22,7 @@ specifiers:
   mobile-detect: ^1.4.5
   postcss: ^8.4.18
   prettier: ^2.7.1
+  rxjs: ^7.5.7
   screenfull: ^6.0.2
   stats.js: ^0.17.0
   sweetalert2: ^11.5.2
@@ -26,10 +31,14 @@ specifiers:
   vite: ^3.1.0
 
 dependencies:
+  '@awesome-cordova-plugins/android-full-screen': 6.0.1_prnxaeyfgonofvr466v37kxfwi
+  '@awesome-cordova-plugins/core': 6.0.1_rxjs@7.5.7
   '@capacitor/android': 4.3.0_@capacitor+core@4.3.0
   '@capacitor/core': 4.3.0
   '@capacitor/ios': 4.3.0_@capacitor+core@4.3.0
+  '@capacitor/status-bar': 4.0.1_@capacitor+core@4.3.0
   clipboard: 2.0.11
+  cordova-plugin-fullscreen: 1.3.0
   double-ended-queue: 2.1.0-0
   eruda: 2.5.0
   firebase: 9.12.1
@@ -37,6 +46,7 @@ dependencies:
   jquery: 3.6.1
   lil-gui: 0.17.0
   mobile-detect: 1.4.5
+  rxjs: 7.5.7
   screenfull: 6.0.2
   sweetalert2: 11.5.2
   three: 0.144.0
@@ -53,6 +63,26 @@ devDependencies:
   vite: 3.1.1
 
 packages:
+
+  /@awesome-cordova-plugins/android-full-screen/6.0.1_prnxaeyfgonofvr466v37kxfwi:
+    resolution: {integrity: sha512-dmQ4oNIKBAaOqVoWmEV3+c7iWkGhXYDHm2VUQG0KAoKuY4j1tT0mP2vEcgNAmd3tdSRcA3fWJJNMTaOK7nmI9Q==}
+    peerDependencies:
+      '@awesome-cordova-plugins/core': ^6.0.1
+      rxjs: ^5.5.0 || ^6.5.0 || ^7.3.0
+    dependencies:
+      '@awesome-cordova-plugins/core': 6.0.1_rxjs@7.5.7
+      '@types/cordova': 0.0.34
+      rxjs: 7.5.7
+    dev: false
+
+  /@awesome-cordova-plugins/core/6.0.1_rxjs@7.5.7:
+    resolution: {integrity: sha512-DTlyvVrqwRG7fwhmc2Nu514ACiSX7AkwG8lCoJqgnav6md+hABqZ+pJNpfmMtuQEzhoev/Mh+aZ2LdG3d065ow==}
+    peerDependencies:
+      rxjs: ^5.5.0 || ^6.5.0 || ^7.3.0
+    dependencies:
+      '@types/cordova': 0.0.34
+      rxjs: 7.5.7
+    dev: false
 
   /@capacitor/android/4.3.0_@capacitor+core@4.3.0:
     resolution: {integrity: sha512-JnyQsxq44wLFPQ1sN1sMISNbVuNVHXdUdseil1mNsag3JOKu1BkLCyC3aqI4ioce63fK6VtoUIvzR4YzqBn1yg==}
@@ -98,6 +128,14 @@ packages:
     resolution: {integrity: sha512-l9vuFzGkopHEWTsbdCwcJF/TLPspuhWSSq5cfB61YO4HAG5o3y/M6TiftL3JTyw/OOJ6cgWtLI/2QMp1TPIU4w==}
     peerDependencies:
       '@capacitor/core': ^4.2.0
+    dependencies:
+      '@capacitor/core': 4.3.0
+    dev: false
+
+  /@capacitor/status-bar/4.0.1_@capacitor+core@4.3.0:
+    resolution: {integrity: sha512-BmEyOf3m/hAf8bO4hCX0m5gpQPSgd05mGYl+9E841WUZeJjcYlmiG/EBshAUb2uGCVtyNaG36yPXB0r0Ypg+rw==}
+    peerDependencies:
+      '@capacitor/core': ^4.0.0
     dependencies:
       '@capacitor/core': 4.3.0
     dev: false
@@ -815,6 +853,10 @@ packages:
     resolution: {integrity: sha512-Vvn3zZrhQZkkBE8LSuW3em98c0FwgO4nxzv6OdSxPKJIEKY2bGbHn+mhGIPerzI4twdxaP8/0+06HBpwf345Lw==}
     dev: false
 
+  /@types/cordova/0.0.34:
+    resolution: {integrity: sha512-rkiiTuf/z2wTd4RxFOb+clE7PF4AEJU0hsczbUdkHHBtkUmpWQpEddynNfJYKYtZFJKbq4F+brfekt1kx85IZA==}
+    dev: false
+
   /@types/fs-extra/8.1.2:
     resolution: {integrity: sha512-SvSrYXfWSc7R4eqnOzbQF4TZmfpNSM9FrSWLU3EUnWBuyZqNBOrv1B1JA3byUDPUl9z4Ab3jeZG2eDdySlgNMg==}
     dependencies:
@@ -1061,6 +1103,11 @@ packages:
 
   /concat-map/0.0.1:
     resolution: {integrity: sha512-/Srv4dswyQNBfohGpz9o6Yb3Gz3SrUDqBH5rTuhGR7ahtlbYKnVxw2bCFMRljaA7EXHaXZ8wsHdodFvbkhKmqg==}
+
+  /cordova-plugin-fullscreen/1.3.0:
+    resolution: {integrity: sha512-K0SQMUyemQrezNlnfyHXQd8BgpwR3TS/fx456GueRCUdro5QG6tCzDDVBCVEGeKroDhXWmabAlhvO3gPoqw/tg==}
+    engines: {'0': {name: cordova, version: '>=3.0.0'}}
+    dev: false
 
   /core-util-is/1.0.3:
     resolution: {integrity: sha512-ZQBvi1DcpJ4GDqanjucZ2Hj3wEO5pZDS89BWbkcrvdxksJorwUDDZamX9ldFkp9aw2lmBDLgkObEA4DWNJ9FYQ==}
@@ -2385,6 +2432,12 @@ packages:
     dependencies:
       queue-microtask: 1.2.3
     dev: true
+
+  /rxjs/7.5.7:
+    resolution: {integrity: sha512-z9MzKh/UcOqB3i20H6rtrlaE/CgjLOvheWK/9ILrbhROGTweAi1BaFsTT9FbwZi5Trr1qNRs+MXkhmR06awzQA==}
+    dependencies:
+      tslib: 2.4.0
+    dev: false
 
   /safe-buffer/5.1.2:
     resolution: {integrity: sha512-Gd2UZBJDkXlY7GbJxfsE8/nvKkUEU1G38c1siN6QP6a9PT9MmHB8GnpscSmMJSoF8LOIrt8ud/wPtojys4G6+g==}
