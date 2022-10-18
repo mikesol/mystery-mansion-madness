@@ -97,6 +97,8 @@ const SHIFT_INSTRUCTION = {
   GO_RIGHT: 1,
 };
 
+const AUDIO_STOPS = 125.3;
+
 const handleFullScreen = () => {
   if (screenfull.isEnabled && IS_MOBILE) {
     screenfull.request();
@@ -297,7 +299,7 @@ const main = async () => {
           const source = audioContext.createBufferSource();
           source.buffer = buffer;
           source.connect(audioContext.destination);
-          source.start();
+          source.start(audioContext.currentTime, 0.0, AUDIO_STOPS);
           source.addEventListener("ended", async () => {
             if (gameLoopUnsub) {
               gameLoopUnsub();
