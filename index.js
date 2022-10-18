@@ -328,13 +328,15 @@ const main = async () => {
                 text: `Your final score is ${finalScore.toFixed(
                   1
                 )}. Your world ranking is #${rank}.`,
-                //imageUrl: "https://source.unsplash.com/QzpgqElvSiA/400x200",
-                // imageWidth: 400,
-                // imageHeight: 200,
-                // imageAlt: "Custom image",
-                confirmButtonText: "Play again",
-              }).then(() => {
-                window.location = "https://joyride.fm";
+                showCancelButton: true,
+                cancelButtonText: "Play again",
+                confirmButtonText: "Join Our Discord!",
+              }).then((result) => {
+                if (result.isConfirmed) {
+                  window.location = "https://discord.gg/gUAPQAtbS8";
+                } else {
+                  window.location = "https://joyride.fm";
+                }
               });
             }
           });
@@ -452,9 +454,7 @@ const main = async () => {
               (newIndex > currentGroupIndex &&
                 !(newIndex === 7 && currentGroupIndex === 0)) ||
               (newIndex === 0 && currentGroupIndex === 7);
-              scoreSpan.text(
-                shiftingLeft ? "Shifted left!" : "Shifted right!"
-              );
+            scoreSpan.text(shiftingLeft ? "Shifted left!" : "Shifted right!");
             doShift(
               shiftingLeft
                 ? SHIFT_INSTRUCTION.GO_LEFT
@@ -905,7 +905,6 @@ const main = async () => {
           Swal.fire({
             title: "Yikes!",
             text: "Names must be between 3 and 16 characters",
-            //icon: "error",
             confirmButtonText: "Got it",
           });
         } else {
@@ -984,7 +983,6 @@ const main = async () => {
           Swal.fire({
             title: "Yikes!",
             text: "Names must be between 3 and 16 characters",
-            //icon: "error",
             confirmButtonText: "Got it",
           });
         } else {
@@ -1049,7 +1047,6 @@ const main = async () => {
   new ClipboardJS(".clippy");
   $(".clippy").on("click", () => {
     Swal.fire({
-      //icon: "success",
       title: "Copied!",
       text: "The link is copied to your clipboard. Send it to up to 7 friends!",
       timer: 2000,
