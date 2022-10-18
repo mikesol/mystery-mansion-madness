@@ -129,9 +129,43 @@ const showWhoHasJoined = (title, player) =>
 
 const makeGroup = ({ scene, side, groupId, multtxt }) => {
   // thin stuff out
-  const laneNotes = SPOOKY_LANES.filter(
-    (x, i) => i % 8 !== groupId && (i + 3) % 8 !== groupId && x.timing > 1.0
-  );
+  const laneNotes = SPOOKY_LANES.map((x) => {
+    const o = { ...x };
+    if (groupId % 4 === 0) {
+      // do nothing
+    } else if (groupId % 4 === 1) {
+      // shift 1
+      o.column =
+        x.column === LANE_COLUMN.FAR_LEFT
+          ? LANE_COLUMN.NEAR_LEFT
+          : x.column === LANE_COLUMN.NEAR_LEFT
+          ? LANE_COLUMN.NEAR_RIGHT
+          : x.column === LANE_COLUMN.NEAR_RIGHT
+          ? LANE_COLUMN.FAR_RIGHT
+          : LANE_COLUMN.FAR_LEFT;
+    } else if (groupId % 4 === 2) {
+      // shift 2
+      o.column =
+        x.column === LANE_COLUMN.FAR_LEFT
+          ? LANE_COLUMN.NEAR_RIGHT
+          : x.column === LANE_COLUMN.NEAR_LEFT
+          ? LANE_COLUMN.FAR_RIGHT
+          : x.column === LANE_COLUMN.NEAR_RIGHT
+          ? LANE_COLUMN.FAR_LEFT
+          : LANE_COLUMN.NEAR_LEFT;
+    } else {
+      // shift 3
+      o.column =
+        x.column === LANE_COLUMN.FAR_LEFT
+          ? LANE_COLUMN.FAR_RIGHT
+          : x.column === LANE_COLUMN.NEAR_LEFT
+          ? LANE_COLUMN.FAR_LEFT
+          : x.column === LANE_COLUMN.NEAR_RIGHT
+          ? LANE_COLUMN.NEAR_LEFT
+          : LANE_COLUMN.NEAR_RIGHT;
+    }
+    return o;
+  });
   const { laneNoteMesh, laneNoteInfo, laneNoteTable } = createLaneNotes({
     notes: laneNotes,
     groupId,
@@ -289,7 +323,9 @@ const main = async () => {
               const rank = await getRank({ score: score.score });
               Swal.fire({
                 title: "Congrats!",
-                text: `Your final score is ${finalScore.toFixed(1)}. Your world ranking is #${rank}.`,
+                text: `Your final score is ${finalScore.toFixed(
+                  1
+                )}. Your world ranking is #${rank}.`,
                 //imageUrl: "https://source.unsplash.com/QzpgqElvSiA/400x200",
                 // imageWidth: 400,
                 // imageHeight: 200,
