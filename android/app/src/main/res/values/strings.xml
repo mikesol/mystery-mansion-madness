@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">joyride</string>
+    <string name="app_name">Mystery Mansion Madness</string>
     <string name="title_activity_main">joyride</string>
     <string name="package_name">fm.joyride.mmm</string>
     <string name="custom_url_scheme">fm.joyride.mmm</string>
