@@ -450,6 +450,9 @@ const main = async () => {
               (newIndex > currentGroupIndex &&
                 !(newIndex === 7 && currentGroupIndex === 0)) ||
               (newIndex === 0 && currentGroupIndex === 7);
+              scoreSpan.text(
+                shiftingLeft ? "Shifted left!" : "Shifted right!"
+              );
             doShift(
               shiftingLeft
                 ? SHIFT_INSTRUCTION.GO_LEFT
@@ -729,7 +732,13 @@ const main = async () => {
             elapsedTime > latestRailNote.timing - 0.1 &&
             elapsedTime < latestRailNote.timing + 0.1
           ) {
-            scoreSpan.text(touchIndex === 4 ? "Shift Left!" : "Shift Right!");
+            practice
+              ? scoreSpan.text(
+                  touchIndex === 4 ? "Shift Left!" : "Shift Right!"
+                )
+              : scoreSpan.text(
+                  touchIndex === 4 ? "Requesting left!" : "Requesting right!"
+                );
             comboSpan.text("");
             latestRailNote.hasHit = true;
             if (practice) {
