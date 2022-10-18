@@ -1045,7 +1045,8 @@ const main = async () => {
       confirmButtonText: "Got it 👍",
     });
   });
-  window.addEventListener("hashchange", hashChange);
+  // for now don't track hash changes as we're not doing any in-app navigation
+  // window.addEventListener("hashchange", hashChange);
   hashChange();
 };
 
