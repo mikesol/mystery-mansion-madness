@@ -319,7 +319,7 @@ const main = async () => {
                 }
               }
               finalScore += score.score;
-              await createScore({ score: finalScore, name });
+              await createScore({ score: finalScore, name, ride: title });
               const rank = await getRank({ score: score.score });
               Swal.fire({
                 title: "Congrats!",

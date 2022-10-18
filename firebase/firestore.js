@@ -44,11 +44,13 @@ export const getGame = async ({ title }) => {
   }
 };
 
-export const createScore = async ({ name, score }) => {
+export const createScore = async ({ name, score, ride }) => {
   const title = makeid(6);
   await setDoc(doc(db, "scores", title), {
     name,
     score,
+    ride,
+    uid: auth.currentUser.uid,
   });
 };
 
