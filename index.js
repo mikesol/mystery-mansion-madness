@@ -9,7 +9,7 @@ import Stats from "stats.js";
 import * as three from "three";
 import { GROUPS } from "./core/groups";
 import { createCamera } from "./camera.js";
-import { SPOOKY_LANES, SPOOKY_RAILS } from "./core/halloween0.js";
+import * as HALLOWEEN from "./core/halloween0.js";
 import oneX from "./assets/1xalpha.png";
 import twoX from "./assets/2xalpha.png";
 import threeX from "./assets/3xalpha.png";
@@ -136,7 +136,11 @@ const showWhoHasJoined = (title, player) =>
 
 const makeGroup = ({ scene, side, groupId, multtxt }) => {
   // thin stuff out
-  const laneNotes = SPOOKY_LANES.map((x) => {
+  const laneNotes = HALLOWEEN.SPOOKY_LANES.map((x) => {
+    const o = { ...x };
+    o.timing -= (60.0 * 3) / HALLOWEEN.TEMPO;
+    return o;
+  }).map((x) => {
     const o = { ...x };
     if (groupId % 4 === 0) {
       // do nothing
@@ -183,12 +187,16 @@ const makeGroup = ({ scene, side, groupId, multtxt }) => {
 
   sideGroup.add(laneNoteMesh);
 
-  const quarterIs = 60.0 / 140.0;
+  const quarterIs = 60.0 / HALLOWEEN.TEMPO;
   const eightBeatsAre = quarterIs * 8.0;
   const sixteenBeatsAre = quarterIs * 16.0;
   const test1 = (x) => x.timing % sixteenBeatsAre < eightBeatsAre;
   const test2 = (x) => x.timing % sixteenBeatsAre > eightBeatsAre;
-  const railNotes = SPOOKY_RAILS.filter(groupId % 2 === 0 ? test1 : test2);
+  const railNotes = HALLOWEEN.SPOOKY_RAILS.map((x) => {
+    const o = { ...x };
+    o.timing -= (60.0 * 3) / HALLOWEEN.TEMPO;
+    return o;
+  }).filter(groupId % 2 === 0 ? test1 : test2);
   const { railNoteMesh, railNoteInfo, railNoteTable } = createRailNotes({
     notes: railNotes,
     groupId,

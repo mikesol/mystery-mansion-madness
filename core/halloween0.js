@@ -1,5 +1,6 @@
 export const CHART_LENGTH = 128;
 // test chart
+export const TEMPO = 140;
 export const SPOOKY_LANES_DEBUG = 
 [{"timing":0,"column":0.5},{"timing":1.7142857142857142,"column":-1.5},{"timing":3.4285714285714284,"column":-0.5},{"timing":5.142857142857143,"column":1.5},{"timing":6.857142857142857,"column":0.5},{"timing":8.571428571428571,"column":-1.5},{"timing":10.285714285714286,"column":-0.5},{"timing":12,"column":1.5},{"timing":13.714285714285714,"column":0.5},{"timing":13.714285714285714,"column":-1.5},{"timing":15.428571428571429,"column":-1.5},{"timing":15.428571428571429,"column":-0.5},{"timing":17.142857142857142,"column":-0.5},{"timing":17.142857142857142,"column":1.5},{"timing":18.857142857142858,"column":1.5},{"timing":18.857142857142858,"column":0.5},{"timing":20.571428571428573,"column":0.5},{"timing":20.571428571428573,"column":-1.5},{"timing":22.285714285714285,"column":-1.5},{"timing":22.285714285714285,"column":-0.5},{"timing":24,"column":-0.5},{"timing":24,"column":1.5},{"timing":25.714285714285715,"column":1.5},{"timing":25.714285714285715,"column":0.5}];
 export const SPOOKY_RAILS = 

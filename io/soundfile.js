@@ -1,4 +1,4 @@
-import halloweenUrl from "../assets/halloween2.mp3";
+import halloweenUrl from "../assets/halloween3.mp3";
 
 export const getAudioData = () =>
   new Promise((resolve, reject) => {
