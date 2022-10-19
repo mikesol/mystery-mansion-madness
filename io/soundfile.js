@@ -1,10 +1,10 @@
-const MP3_URL = "https://cdn.filestackcontent.com/wY3jOl5STyGb1ybCYZZC";
+import halloweenUrl from "../assets/halloween3.mp3";
 
 export const getAudioData = () =>
   new Promise((resolve, reject) => {
     const request = new XMLHttpRequest();
 
-    request.open("GET", MP3_URL, true);
+    request.open("GET", halloweenUrl, true);
 
     request.responseType = "arraybuffer";
 
