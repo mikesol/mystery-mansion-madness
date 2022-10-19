@@ -9,7 +9,7 @@ import Stats from "stats.js";
 import * as three from "three";
 import { GROUPS } from "./core/groups";
 import { createCamera } from "./camera.js";
-import { SPOOKY_LANES } from "./core/halloween0.js";
+import { SPOOKY_LANES, SPOOKY_RAILS } from "./core/halloween0.js";
 import oneX from "./assets/1xalpha.png";
 import twoX from "./assets/2xalpha.png";
 import threeX from "./assets/3xalpha.png";
@@ -184,14 +184,10 @@ const makeGroup = ({ scene, side, groupId, multtxt }) => {
 
   const quarterIs = 60.0 / 140.0;
   const eightBeatsAre = quarterIs * 8.0;
-  const railNotes = [];
-  for (
-    let i = eightBeatsAre + quarterIs * [0, 4, 1, 6, 3, 7, 2, 5][groupId];
-    i < 120.0;
-    i += eightBeatsAre
-  ) {
-    railNotes.push({ timing: i, column: RAIL_COLUMN.LEFT });
-  }
+  const sixteenBeatsAre = quarterIs * 16.0;
+  const test1 = (x) => x.timing % sixteenBeatsAre < eightBeatsAre;
+  const test2 = (x) => x.timing % sixteenBeatsAre > eightBeatsAre;
+  const railNotes = SPOOKY_RAILS.filter(groupId % 2 === 0 ? test1 : test2);
   const { railNoteMesh, railNoteInfo, railNoteTable } = createRailNotes({
     notes: railNotes,
     groupId,
