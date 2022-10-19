@@ -2,6 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
+/* safari hack */
+input[type='text'],textarea {font-size:1em;}
+
 .fade-in-video { animation: myFade 2s; }
 
 @keyframes myFade {

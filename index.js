@@ -304,7 +304,10 @@ const main = async () => {
     audioContext = new AudioContext();
     // ugggggh ios
     const hack = audioContext.createConstantSource();
-    hack.connect(audioContext.destination);
+    const gn = audioContext.createGain();
+    gn.gain.value = 0.0
+    hack.connect(gn);
+    gn.connect(audioContext.destination);
     hack.start();
   }
   const togglePlayBack =
