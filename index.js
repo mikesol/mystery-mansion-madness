@@ -101,13 +101,14 @@ const SHIFT_INSTRUCTION = {
   GO_RIGHT: 1,
 };
 
+const FULL_VIDEO_OPACITY = "opacity-100";
 const AUDIO_STOPS = 125.3;
 
-const handleFullScreen = () => {
+const handleFullScreen = async () => {
   if (screenfull.isEnabled && IS_MOBILE) {
-    screenfull.request();
+    await screenfull.request();
     if (screen && screen.orientation && screen.orientation.lock) {
-      screen.orientation.lock("landscape").catch((e) => console.warn(e));
+      await screen.orientation.lock("landscape").catch((e) => console.warn(e));
     }
   }
 };
@@ -353,6 +354,9 @@ const main = async () => {
     };
 
   const doGame = async ({ player, practice, title }) => {
+    // background
+    $("#storm-video").removeClass("opacity-0");
+    $("#storm-video").addClass(FULL_VIDEO_OPACITY);
     // textures
     const loader = new three.TextureLoader();
     const [t1x, t2x, t3x, t5x, t8x] = await Promise.all([
@@ -971,7 +975,7 @@ const main = async () => {
     } else if (routing.hash.substring(0, 3) === "#/p") {
       // we are starting from scratch
       $("#start-game-practice").on("click", async () => {
-        handleFullScreen();
+        await handleFullScreen();
         const player = 2;
         await doGame({ audioDataPromise, practice: true, player });
         practiceScreen.addClass("hidden");
@@ -1018,7 +1022,7 @@ const main = async () => {
             if (unsub) {
               unsub();
             }
-            handleFullScreen();
+            await handleFullScreen();
             ownerWaitScreen.removeClass("hidden");
             const claimPlayerRes = await claimPlayerPromise;
             const starting = new Date();

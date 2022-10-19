@@ -2,14 +2,25 @@
 @tailwind components;
 @tailwind utilities;
 
+.fade-in-video { animation: myFade 2s; }
+
+@keyframes myFade {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+.back-div {
+    background: url("./assets/mansion.jpeg");
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
 #joyride-canvas {
     position: absolute;
     width: 100%;
     height: 100%;
     display: block;
-    /* background: url("./background.png") no-repeat center center; */
-    background: url("./assets/mansion.jpeg");
-    background-size: cover;
 }
 
 /* ldr */
