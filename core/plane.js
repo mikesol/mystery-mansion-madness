@@ -28,14 +28,15 @@ export const HIGHWAY_POSITION_Y = 0.0;
 export const HIGHWAY_POSITION_Z = -2.4;
 export const HIGHWAY_GEOMETRY = () =>
   new three.BoxGeometry(HIGHWAY_SCALE_X, HIGHWAY_SCALE_Y, HIGHWAY_SCALE_Z);
-export const HIGHWAY_MATERIAL = () =>
+export const HIGHWAY_MATERIAL = ({electric}) =>
   new three.MeshBasicMaterial({
-    color: 0x353436,
+    //color: 0x353436,
+    map: electric,
     transparent: true
   });
 
-export const createHighway = () => {
-  const mesh = new three.Mesh(HIGHWAY_GEOMETRY(), HIGHWAY_MATERIAL());
+export const createHighway = ({ electric }) => {
+  const mesh = new three.Mesh(HIGHWAY_GEOMETRY(), HIGHWAY_MATERIAL({electric}));
   mesh.position.set(HIGHWAY_POSITION_X, HIGHWAY_POSITION_Y, HIGHWAY_POSITION_Z);
   return mesh;
 };

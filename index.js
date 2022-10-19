@@ -171,7 +171,7 @@ const laneMod = (v) => (x) => {
   }
   return o;
 };
-const makeGroup = ({ scene, side, groupId, multtxt }) => {
+const makeGroup = ({ scene, side, groupId, multtxt, electric }) => {
   // thin stuff out
   const laneNotes = (
     groupId == 0 || groupId == 1 || groupId === 7
@@ -232,7 +232,7 @@ const makeGroup = ({ scene, side, groupId, multtxt }) => {
   });
   railGroup.add(railNoteMesh);
 
-  const highway = createHighway();
+  const highway = createHighway({ electric });
   if (side !== SIDES.CENTER) {
     highway.material.opacity = SIDE_LANE_OPACITY;
   }
@@ -410,6 +410,8 @@ const main = async () => {
       loader.loadAsync(fiveX),
       loader.loadAsync(eightX),
     ]);
+    const electric = new three.VideoTexture( document.getElementById( 'electric-video' ) );
+ 
 
     // canvas
     const canvas = document.getElementById("joyride-canvas");
@@ -425,49 +427,49 @@ const main = async () => {
     const pm1 = player - 1;
     const ALL_GROUPS = [
       makeGroup({
-        scene,
+        scene,electric,
         multtxt: t1x,
         side: SIDES_CLOCKWISE[negMod(0 - pm1, 8)],
         groupId: GROUPS.LOWEST,
       }),
       makeGroup({
-        scene,
+        scene,electric,
         multtxt: t2x,
         side: SIDES_CLOCKWISE[negMod(1 - pm1, 8)],
         groupId: GROUPS.LOW_LEFT,
       }),
       makeGroup({
-        scene,
+        scene,electric,
         multtxt: t3x,
         side: SIDES_CLOCKWISE[negMod(2 - pm1, 8)],
         groupId: GROUPS.MID_LEFT,
       }),
       makeGroup({
-        scene,
+        scene,electric,
         multtxt: t5x,
         side: SIDES_CLOCKWISE[negMod(3 - pm1, 8)],
         groupId: GROUPS.HIGH_LEFT,
       }),
       makeGroup({
-        scene,
+        scene,electric,
         multtxt: t8x,
         side: SIDES_CLOCKWISE[negMod(4 - pm1, 8)],
         groupId: GROUPS.HIGHEST,
       }),
       makeGroup({
-        scene,
+        scene,electric,
         multtxt: t5x,
         side: SIDES_CLOCKWISE[negMod(5 - pm1, 8)],
         groupId: GROUPS.HIGH_RIGHT,
       }),
       makeGroup({
-        scene,
+        scene,electric,
         multtxt: t3x,
         side: SIDES_CLOCKWISE[negMod(6 - pm1, 8)],
         groupId: GROUPS.MID_RIGHT,
       }),
       makeGroup({
-        scene,
+        scene,electric,
         multtxt: t2x,
         side: SIDES_CLOCKWISE[negMod(7 - pm1, 8)],
         groupId: GROUPS.LOW_RIGHT,
