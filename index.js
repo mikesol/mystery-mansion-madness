@@ -134,49 +134,64 @@ const showWhoHasJoined = (title, player) =>
     },
   });
 
+const laneMod = (v) => (x) => {
+  const o = { ...x };
+  if (v % 4 === 0) {
+    // do nothing
+  } else if (v % 4 === 1) {
+    // shift 1
+    o.column =
+      x.column === LANE_COLUMN.FAR_LEFT
+        ? LANE_COLUMN.NEAR_LEFT
+        : x.column === LANE_COLUMN.NEAR_LEFT
+        ? LANE_COLUMN.NEAR_RIGHT
+        : x.column === LANE_COLUMN.NEAR_RIGHT
+        ? LANE_COLUMN.FAR_RIGHT
+        : LANE_COLUMN.FAR_LEFT;
+  } else if (v % 4 === 2) {
+    // shift 2
+    o.column =
+      x.column === LANE_COLUMN.FAR_LEFT
+        ? LANE_COLUMN.NEAR_RIGHT
+        : x.column === LANE_COLUMN.NEAR_LEFT
+        ? LANE_COLUMN.FAR_RIGHT
+        : x.column === LANE_COLUMN.NEAR_RIGHT
+        ? LANE_COLUMN.FAR_LEFT
+        : LANE_COLUMN.NEAR_LEFT;
+  } else {
+    // shift 3
+    o.column =
+      x.column === LANE_COLUMN.FAR_LEFT
+        ? LANE_COLUMN.FAR_RIGHT
+        : x.column === LANE_COLUMN.NEAR_LEFT
+        ? LANE_COLUMN.FAR_LEFT
+        : x.column === LANE_COLUMN.NEAR_RIGHT
+        ? LANE_COLUMN.NEAR_LEFT
+        : LANE_COLUMN.NEAR_RIGHT;
+  }
+  return o;
+};
 const makeGroup = ({ scene, side, groupId, multtxt }) => {
   // thin stuff out
-  const laneNotes = HALLOWEEN.SPOOKY_LANES.map((x) => {
-    const o = { ...x };
-    o.timing -= (60.0 * 3) / HALLOWEEN.TEMPO;
-    return o;
-  }).map((x) => {
-    const o = { ...x };
-    if (groupId % 4 === 0) {
-      // do nothing
-    } else if (groupId % 4 === 1) {
-      // shift 1
-      o.column =
-        x.column === LANE_COLUMN.FAR_LEFT
-          ? LANE_COLUMN.NEAR_LEFT
-          : x.column === LANE_COLUMN.NEAR_LEFT
-          ? LANE_COLUMN.NEAR_RIGHT
-          : x.column === LANE_COLUMN.NEAR_RIGHT
-          ? LANE_COLUMN.FAR_RIGHT
-          : LANE_COLUMN.FAR_LEFT;
-    } else if (groupId % 4 === 2) {
-      // shift 2
-      o.column =
-        x.column === LANE_COLUMN.FAR_LEFT
-          ? LANE_COLUMN.NEAR_RIGHT
-          : x.column === LANE_COLUMN.NEAR_LEFT
-          ? LANE_COLUMN.FAR_RIGHT
-          : x.column === LANE_COLUMN.NEAR_RIGHT
-          ? LANE_COLUMN.FAR_LEFT
-          : LANE_COLUMN.NEAR_LEFT;
-    } else {
-      // shift 3
-      o.column =
-        x.column === LANE_COLUMN.FAR_LEFT
-          ? LANE_COLUMN.FAR_RIGHT
-          : x.column === LANE_COLUMN.NEAR_LEFT
-          ? LANE_COLUMN.FAR_LEFT
-          : x.column === LANE_COLUMN.NEAR_RIGHT
-          ? LANE_COLUMN.NEAR_LEFT
-          : LANE_COLUMN.NEAR_RIGHT;
-    }
-    return o;
-  });
+  const laneNotes = (
+    groupId == 0 || groupId == 1 || groupId === 7
+      ? HALLOWEEN.SPOOKY_LANES_FUMIEVAL2.map((x) => {
+          const o = { ...x };
+          o.timing += 0.0; //(60.0 * 1) / HALLOWEEN.TEMPO;
+          return o;
+        })
+      : groupId == 3 || groupId == 4 || groupId === 5
+      ? HALLOWEEN.SPOOKY_LANES_FUMIEVAL.map((x) => {
+          const o = { ...x };
+          o.timing += (60.0 * 1) / HALLOWEEN.TEMPO;
+          return o;
+        })
+      : HALLOWEEN.SPOOKY_LANES.map((x) => {
+          const o = { ...x };
+          o.timing -= (60.0 * 3) / HALLOWEEN.TEMPO;
+          return o;
+        })
+  ).map(laneMod(groupId));
   const { laneNoteMesh, laneNoteInfo, laneNoteTable } = createLaneNotes({
     notes: laneNotes,
     groupId,
@@ -192,11 +207,25 @@ const makeGroup = ({ scene, side, groupId, multtxt }) => {
   const sixteenBeatsAre = quarterIs * 16.0;
   const test1 = (x) => x.timing % sixteenBeatsAre < eightBeatsAre;
   const test2 = (x) => x.timing % sixteenBeatsAre > eightBeatsAre;
-  const railNotes = HALLOWEEN.SPOOKY_RAILS.map((x) => {
-    const o = { ...x };
-    o.timing -= (60.0 * 3) / HALLOWEEN.TEMPO;
-    return o;
-  }).filter(groupId % 2 === 0 ? test1 : test2);
+  const railNotes = (
+    groupId === 0 || groupId === 1 || groupId === 2
+      ? HALLOWEEN.SPOOKY_RAIL_FUMIEVAL2.map((x) => {
+          const o = { ...x };
+          o.timing += 0.0; // (60.0 * 1) / HALLOWEEN.TEMPO;
+          return o;
+        })
+      : groupId === 3 || groupId === 4 || groupId === 5
+      ? HALLOWEEN.SPOOKY_RAIL_FUMIEVAL.map((x) => {
+          const o = { ...x };
+          o.timing += (60.0 * 1) / HALLOWEEN.TEMPO;
+          return o;
+        })
+      : HALLOWEEN.SPOOKY_RAILS.map((x) => {
+          const o = { ...x };
+          o.timing -= (60.0 * 3) / HALLOWEEN.TEMPO;
+          return o;
+        })
+  ).filter(groupId % 2 === 0 ? test1 : test2);
   const { railNoteMesh, railNoteInfo, railNoteTable } = createRailNotes({
     notes: railNotes,
     groupId,
@@ -307,7 +336,7 @@ const main = async () => {
     hack.offset.value = 0.0;
     hack.connect(audioContext.destination);
     hack.start();
-  }
+  };
   const togglePlayBack =
     ({ audioDataPromise, title, player, name }) =>
     async () => {
@@ -984,7 +1013,7 @@ const main = async () => {
                 },
               });
             }
-          }
+          };
           continuation();
         }
       });
@@ -996,7 +1025,7 @@ const main = async () => {
       $("#start-game-practice").on("click", async () => {
         setupAudioContext();
         await handleFullScreen();
-        const player = 2;
+        const player = 1;
         await doGame({ audioDataPromise, practice: true, player });
         practiceScreen.addClass("hidden");
         scoreGrid.removeClass("hidden");
