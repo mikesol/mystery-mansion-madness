@@ -297,13 +297,19 @@ const main = async () => {
   let beginTime = null;
   let isPlaying = false;
 
+  const setupAudioContext = () => {
+    if (audioContext) {
+      audioContext.close();
+    }
+    audioContext = new AudioContext();
+    // ugggggh ios
+    const hack = audioContext.createConstantSource();
+    hack.connect(audioContext.destination);
+    hack.start();
+  }
   const togglePlayBack =
     ({ audioDataPromise, title, player, name }) =>
     async () => {
-      if (audioContext) {
-        audioContext.close();
-      }
-      audioContext = new AudioContext();
       const incoming = await audioDataPromise;
 
       audioContext.decodeAudioData(
@@ -781,12 +787,12 @@ const main = async () => {
     } else {
       document.documentElement.addEventListener("touchstart", handleTouch);
     }
-
     const renderLoop = () => {
       raycaster.setFromCamera(pointerBuffer, camera);
 
       if (isPlaying) {
         const elapsedTime = audioContext.currentTime - beginTime;
+        //console.log(elapsedTime, audioContext.state);
         if (inRotationAnimation) {
           if (rotationAnimationStartsAt === undefined) {
             rotationAnimationStartsAt = elapsedTime;
@@ -918,7 +924,8 @@ const main = async () => {
       // we have been invited to a game
       const title = routing.hash.substring(4);
       const nameInput = $("#spooky-name-friend");
-      $("#start-game-friend").on("click", async () => {
+      $("#start-game-friend").on("click", () => {
+        setupAudioContext();
         const name = nameInput.val();
         if (name.length < 3 || name.length > 16) {
           Swal.fire({
@@ -927,54 +934,57 @@ const main = async () => {
             confirmButtonText: "Got it",
           });
         } else {
-          friendScreen.addClass("hidden");
-          introSpinner.removeClass("hidden");
-          claimPlayerPromise = claimPlayerLoop({ title, name });
-          const claimPlayerRes = await claimPlayerPromise;
-          if (claimPlayerRes === false) {
-            introSpinner.addClass("hidden");
-            startedScreen.removeClass("hidden");
-          } else {
-            introSpinner.addClass("hidden");
-            waitForGameToStartScreen.removeClass("hidden");
-            const unsubForJoin = showWhoHasJoined(title, claimPlayerRes);
-            let started = false;
-            let unsub;
-            unsub = listen({
-              title,
-              listener: async (doc) => {
-                const data = doc.data();
-                if (data.startsAt && !started) {
-                  if (unsub) {
-                    unsub();
+          const continuation = async () => {
+            friendScreen.addClass("hidden");
+            introSpinner.removeClass("hidden");
+            claimPlayerPromise = claimPlayerLoop({ title, name });
+            const claimPlayerRes = await claimPlayerPromise;
+            if (claimPlayerRes === false) {
+              introSpinner.addClass("hidden");
+              startedScreen.removeClass("hidden");
+            } else {
+              introSpinner.addClass("hidden");
+              waitForGameToStartScreen.removeClass("hidden");
+              const unsubForJoin = showWhoHasJoined(title, claimPlayerRes);
+              let started = false;
+              let unsub;
+              unsub = listen({
+                title,
+                listener: async (doc) => {
+                  const data = doc.data();
+                  if (data.startsAt && !started) {
+                    if (unsub) {
+                      unsub();
+                    }
+                    if (unsubForJoin) {
+                      unsubForJoin();
+                    }
+                    started = true;
+                    const timeNow = new Date().getTime();
+                    await doTimeout(
+                      data.startsAt > timeNow ? data.startsAt - timeNow : 0
+                    );
+                    waitForGameToStartScreen.addClass("hidden");
+                    scoreGrid.removeClass("hidden");
+                    await doGame({
+                      title,
+                      audioDataPromise,
+                      practice: false,
+                      player: claimPlayerRes,
+                      name,
+                    });
+                    await togglePlayBack({
+                      audioDataPromise,
+                      title,
+                      player: claimPlayerRes,
+                      name,
+                    })();
                   }
-                  if (unsubForJoin) {
-                    unsubForJoin();
-                  }
-                  started = true;
-                  const timeNow = new Date().getTime();
-                  await doTimeout(
-                    data.startsAt > timeNow ? data.startsAt - timeNow : 0
-                  );
-                  waitForGameToStartScreen.addClass("hidden");
-                  scoreGrid.removeClass("hidden");
-                  await doGame({
-                    title,
-                    audioDataPromise,
-                    practice: false,
-                    player: claimPlayerRes,
-                    name,
-                  });
-                  await togglePlayBack({
-                    audioDataPromise,
-                    title,
-                    player: claimPlayerRes,
-                    name,
-                  })();
-                }
-              },
-            });
+                },
+              });
+            }
           }
+          continuation();
         }
       });
       introSpinner.addClass("hidden");
@@ -983,6 +993,7 @@ const main = async () => {
     } else if (routing.hash.substring(0, 3) === "#/p") {
       // we are starting from scratch
       $("#start-game-practice").on("click", async () => {
+        setupAudioContext();
         await handleFullScreen();
         const player = 2;
         await doGame({ audioDataPromise, practice: true, player });
@@ -1026,6 +1037,7 @@ const main = async () => {
             $("#share-button").addClass("visible");
           });
           $("#start-game").on("click", async () => {
+            setupAudioContext();
             instructionScreen.addClass("hidden");
             if (unsub) {
               unsub();
