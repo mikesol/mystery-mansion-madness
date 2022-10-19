@@ -954,7 +954,7 @@ const main = async () => {
       // we have been invited to a game
       const title = routing.hash.substring(4);
       const nameInput = $("#spooky-name-friend");
-      $("#start-game-friend").on("click", () => {
+      const goHandler = () => {
         setupAudioContext();
         const name = nameInput.val();
         if (name.length < 3 || name.length > 16) {
@@ -1016,7 +1016,13 @@ const main = async () => {
           };
           continuation();
         }
+      };
+      nameInput.on("keyup", function (e) {
+        if (e.key === "Enter" || e.keyCode === 13) {
+          goHandler();
+        }
       });
+      $("#start-game-friend").on("click", goHandler);
       introSpinner.addClass("hidden");
       friendScreen.removeClass("hidden");
       ////
@@ -1037,7 +1043,7 @@ const main = async () => {
       // we are starting from scratch
       gamePromise = signInPromise.then(createGame);
       const nameInput = $("#spooky-name");
-      $("#new-game").on("click", () => {
+      const goHandler = () => {
         const name = nameInput.val();
         if (name.length < 3 || name.length > 16) {
           Swal.fire({
@@ -1066,40 +1072,48 @@ const main = async () => {
             $("#share-button").removeClass("invisible");
             $("#share-button").addClass("visible");
           });
-          $("#start-game").on("click", async () => {
+          $("#start-game").on("click", () => {
             setupAudioContext();
             instructionScreen.addClass("hidden");
             if (unsub) {
               unsub();
             }
-            await handleFullScreen();
-            ownerWaitScreen.removeClass("hidden");
-            const claimPlayerRes = await claimPlayerPromise;
-            const starting = new Date();
-            const { title } = await gamePromise;
-            await setStart({
-              title,
-              startsAt: starting.getTime() + START_DELAY,
-            });
-            await doTimeout(START_DELAY);
-            ownerWaitScreen.addClass("hidden");
-            scoreGrid.removeClass("hidden");
-            await doGame({
-              audioDataPromise,
-              practice: false,
-              player: claimPlayerRes,
-              title,
-              name,
-            });
-            await togglePlayBack({
-              audioDataPromise,
-              title,
-              player: claimPlayerRes,
-              name,
+            (async () => {
+              await handleFullScreen();
+              ownerWaitScreen.removeClass("hidden");
+              const claimPlayerRes = await claimPlayerPromise;
+              const starting = new Date();
+              const { title } = await gamePromise;
+              await setStart({
+                title,
+                startsAt: starting.getTime() + START_DELAY,
+              });
+              await doTimeout(START_DELAY);
+              ownerWaitScreen.addClass("hidden");
+              scoreGrid.removeClass("hidden");
+              await doGame({
+                audioDataPromise,
+                practice: false,
+                player: claimPlayerRes,
+                title,
+                name,
+              });
+              await togglePlayBack({
+                audioDataPromise,
+                title,
+                player: claimPlayerRes,
+                name,
+              })();
             })();
           });
         }
+      };
+      nameInput.on("keyup", function (e) {
+        if (e.key === "Enter" || e.keyCode === 13) {
+          goHandler();
+        }
       });
+      $("#new-game").on("click", goHandler);
 
       introSpinner.addClass("hidden");
       introScreen.removeClass("hidden");
