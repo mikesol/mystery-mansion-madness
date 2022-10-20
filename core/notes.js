@@ -1,6 +1,7 @@
 "use strict";
 
 import * as three from "three";
+import { JUDGEMENT_CONSTANTS } from "../judgement/judgement.js";
 import { CHART_LENGTH } from "./halloween0.js";
 import {
   HIGHWAY_SCALE_X_BASE,
@@ -10,7 +11,6 @@ import {
   RAIL_SCALE_Y,
 } from "./plane.js";
 
-export const UNREACHABLE_POINT = 0.5;
 // get rid of the window after judgement
 export const PENALTY_WINDOW_AFTER_JUDGEMENT = 0.0;
 export const TABLE_DENSITY_PER_SECOND = 10;
@@ -79,11 +79,8 @@ const fillTable = ({ notes, columnToIndex, arrSize }) => {
     while (
       // we still have notes
       j < notes.length &&
-      // the note has passed, meaning
-      // that its time plus an unreachable margin is still less than quantized time
-      // for example, if the note's timing is 15.4 then it should linger until 15.4
-      // if quantized time is 0.0, we don't shift, but as soon as it is 16.0 we do
-      notes[j].timing < QUANTIZED_TIME
+      notes[j].timing + JUDGEMENT_CONSTANTS.CONSIDERATION_WINDOW <
+        QUANTIZED_TIME
     ) {
       j++;
     }
@@ -91,16 +88,15 @@ const fillTable = ({ notes, columnToIndex, arrSize }) => {
     while (
       // we haven't overshot yet
       k < notes.length &&
-      // slightly earlier than when the note comes is now less than quantized time
-      // for example, if the timing is 15.4 then we should start listening at 14.9
-      // that means that we will do nothing when quantized time is 0.0
-      // but we will do something when it's 15.3
-      notes[k].timing - UNREACHABLE_POINT < QUANTIZED_TIME
+      notes[k].timing - JUDGEMENT_CONSTANTS.CONSIDERATION_WINDOW <
+        QUANTIZED_TIME
     ) {
       const ix = columnToIndex(notes[k].column);
       subInfo[ix] =
         // if we do not have a note yet
-        subInfo[ix] === undefined ? k : subInfo[ix];
+        subInfo[ix] === undefined || notes[subInfo[ix]].timing < QUANTIZED_TIME
+          ? k
+          : subInfo[ix];
       k++;
     }
     //console.log(notes.length,j,k,subInfo, k < notes.length ? notes[k].timing : undefined, QUANTIZED_TIME);
