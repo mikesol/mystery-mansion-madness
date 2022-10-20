@@ -317,6 +317,7 @@ const main = async () => {
     score: 0,
     highestCombo: 0,
   };
+  let inShiftRequest = false;
   let gameLoopUnsub;
   let gameScoreReportingInterval;
   let comboCount = 0;
@@ -802,10 +803,12 @@ const main = async () => {
                   ? SHIFT_INSTRUCTION.GO_LEFT
                   : SHIFT_INSTRUCTION.GO_RIGHT
               );
+            } else {
+              touchIndex === 4
+                ? shiftLeft({ title, player })
+                : shiftRight({ title, player });
             }
-            touchIndex === 4
-              ? shiftLeft({ title, player })
-              : shiftRight({ title, player });
+            inShiftRequest = true;
           }
           /// end loop
         }
@@ -851,6 +854,7 @@ const main = async () => {
             // do not display shift any longer
             scoreSpan.text("");
             currentRotationAnimationTargets.length = 0;
+            inShiftRequest = false;
           } else {
             const NORMALIZED_TIME =
               (elapsedTime - rotationAnimationStartsAt) / ROTATION_DURATION;
@@ -913,10 +917,12 @@ const main = async () => {
                 JUDGEMENT_CONSTANTS.CONSIDERATION_WINDOW &&
             !mainGroup.laneNoteInfo[previousLanes[i]].hasHit
           ) {
-            comboCount = 0;
-            scoreSpan.text("Miss!");
-            comboSpan.text(comboCount);
-            break;
+            if (!inShiftRequest) {
+              comboCount = 0;
+              scoreSpan.text("Miss!");
+              comboSpan.text(comboCount);
+              break;  
+            }
           }
         }
       }
