@@ -17,7 +17,6 @@ specifiers:
   firebase: ^9.12.1
   flowbite: ^1.5.3
   htmlhint: ^1.1.4
-  jquery: ^3.6.1
   lil-gui: ^0.17.0
   mobile-detect: ^1.4.5
   postcss: ^8.4.18
@@ -43,7 +42,6 @@ dependencies:
   eruda: 2.5.0
   firebase: 9.12.1
   flowbite: 1.5.3
-  jquery: 3.6.1
   lil-gui: 0.17.0
   mobile-detect: 1.4.5
   rxjs: 7.5.7
@@ -1884,10 +1882,6 @@ packages:
   /isexe/2.0.0:
     resolution: {integrity: sha512-RHxMLp9lnKHGHRng9QFhRCMbYAcVpn69smSGcq3f36xjgVVWThj4qqLbTLlq7Ssj8B+fIQ1EuCEGI2lKsyQeIw==}
     dev: true
-
-  /jquery/3.6.1:
-    resolution: {integrity: sha512-opJeO4nCucVnsjiXOE+/PcCgYw9Gwpvs/a6B1LL/lQhwWwpbVEVYDZ1FokFr8PRc7ghYlrFPuyHuiiDNTQxmcw==}
-    dev: false
 
   /js-sdsl/4.1.5:
     resolution: {integrity: sha512-08bOAKweV2NUC1wqTtf3qZlnpOX/R2DU9ikpjOHs0H+ibQv3zpncVQg6um4uYtRtrwIX8M4Nh3ytK4HGlYAq7Q==}

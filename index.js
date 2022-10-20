@@ -4,7 +4,6 @@ import { AndroidFullScreen } from "@awesome-cordova-plugins/android-full-screen"
 import GUI from "lil-gui";
 import * as eruda from "eruda";
 import "flowbite";
-import $ from "jquery";
 import Stats from "stats.js";
 import * as three from "three";
 import { GROUPS } from "./core/groups";
@@ -119,7 +118,7 @@ const doTimeout = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const ROTATION_DURATION = 0.6;
 
-const showWhoHasJoined = (title, player) =>
+const showWhoHasJoined = (title, player, id) =>
   listen({
     title,
     listener: async (doc) => {
@@ -132,7 +131,7 @@ const showWhoHasJoined = (title, player) =>
           } has joined!</span></div>`;
         }
       }
-      $(".who-has-joined").html(html);
+      document.getElementById(id).innerHTML = html;
     },
   });
 
@@ -407,8 +406,9 @@ const main = async () => {
 
   const doGame = async ({ player, practice, title }) => {
     // background
-    $("#storm-video").removeClass("opacity-0");
-    $("#storm-video").addClass(FULL_VIDEO_OPACITY);
+    const stormVideo = document.getElementById("storm-video");
+    stormVideo.classList.remove("opacity-0");
+    stormVideo.classList.add(FULL_VIDEO_OPACITY);
     // textures
     const loader = new three.TextureLoader();
     const [t1x, t2x, t3x, t5x, t8x] = await Promise.all([
@@ -514,7 +514,9 @@ const main = async () => {
               (newIndex > currentGroupIndex &&
                 !(newIndex === 7 && currentGroupIndex === 0)) ||
               (newIndex === 0 && currentGroupIndex === 7);
-            scoreSpan.text(shiftingLeft ? "Shifted left!" : "Shifted right!");
+            scoreSpan.textContent = shiftingLeft
+              ? "Shifted left!"
+              : "Shifted right!";
             doShift(
               shiftingLeft
                 ? SHIFT_INSTRUCTION.GO_LEFT
@@ -541,12 +543,11 @@ const main = async () => {
     for (const touchArea of touchAreas) {
       scene.add(touchArea);
     }
-
-    $("#intro-screen").addClass("hidden");
-    $("#score-grid").removeClass("hidden");
-    const scoreSpan = $("#score-text");
-    const comboSpan = $("#combo-text");
-    const realScore = $("#real-score");
+    introScreen.classList.add("hidden");
+    scoreGrid.classList.remove("hidden");
+    const scoreSpan = document.getElementById("score-text");
+    const comboSpan = document.getElementById("combo-text");
+    const realScore = document.getElementById("real-score");
 
     const context = {
       movementThreshold: 1.0,
@@ -759,20 +760,20 @@ const main = async () => {
             if (untilPerfect < JUDGEMENT_CONSTANTS.PERFECTION) {
               comboCount += 1;
               scoreMultiplier;
-              scoreSpan.text("Perfect!");
-              comboSpan.text(comboCount);
+              scoreSpan.textContent = "Perfect!";
+              comboSpan.textContent = comboCount;
               latestLaneNote.hasHit = true;
               scoreMultiplier = PERFECT_MULTIPLIER;
             } else if (untilPerfect < JUDGEMENT_CONSTANTS.ALMOST) {
               comboCount += 1;
-              scoreSpan.text("Nice");
-              comboSpan.text(comboCount);
+              scoreSpan.textContent = "Nice";
+              comboSpan.textContent = comboCount;
               latestLaneNote.hasHit = true;
               scoreMultiplier = GREAT_MULTIPLIER;
             } else {
               comboCount += 1;
-              scoreSpan.text("Almost");
-              comboSpan.text(comboCount);
+              scoreSpan.textContent = "Almost";
+              comboSpan.textContent = comboCount;
               latestLaneNote.hasHit = true;
               scoreMultiplier = OK_MULTIPLIER;
             }
@@ -781,7 +782,7 @@ const main = async () => {
               (1 + comboCount) *
               SCORE_MULTIPLIERS[mainGroup.groupId];
             score.highestCombo = Math.max(score.highestCombo, comboCount);
-            realScore.text(score.score.toFixed(1));
+            realScore.textContent = score.score.toFixed(1);
           }
           const latestRailNote =
             touchIndex === 4 && activeRails[0] !== undefined
@@ -795,13 +796,11 @@ const main = async () => {
             elapsedTime < latestRailNote.timing + 0.1
           ) {
             practice
-              ? scoreSpan.text(
-                  touchIndex === 4 ? "Shift Left!" : "Shift Right!"
-                )
-              : scoreSpan.text(
-                  touchIndex === 4 ? "Requesting left!" : "Requesting right!"
-                );
-            comboSpan.text("");
+              ? (scoreSpan.textContent =
+                  touchIndex === 4 ? "Shift Left!" : "Shift Right!")
+              : (scoreSpan.textContent =
+                  touchIndex === 4 ? "Requesting left!" : "Requesting right!");
+            comboSpan.textContent = "";
             latestRailNote.hasHit = true;
             if (practice) {
               // the firebase callback won't pick this up so we trigger it here
@@ -859,7 +858,7 @@ const main = async () => {
             inRotationAnimation = false;
             rotationAnimationStartsAt = undefined;
             // do not display shift any longer
-            scoreSpan.text("");
+            scoreSpan.textContent = "";
             currentRotationAnimationTargets.length = 0;
             inShiftRequest = false;
           } else {
@@ -926,8 +925,8 @@ const main = async () => {
           ) {
             if (!inShiftRequest) {
               comboCount = 0;
-              scoreSpan.text("Miss!");
-              comboSpan.text(comboCount);
+              scoreSpan.textContent = "Miss!";
+              comboSpan.textContent = comboCount;
               break;
             }
           }
@@ -945,15 +944,15 @@ const main = async () => {
 
     requestAnimationFrame(renderLoop);
   };
-  const introScreen = $("#intro-screen");
-  const friendScreen = $("#friend-screen");
-  const waitForGameToStartScreen = $("#wait-screen");
-  const ownerWaitScreen = $("#owner-wait-screen");
-  const startedScreen = $("#started-screen");
-  const practiceScreen = $("#practice-screen");
-  const instructionScreen = $("#instruction-screen");
-  const scoreGrid = $("#score-grid");
-  const introSpinner = $("#loading-spinner");
+  const introScreen = document.getElementById("intro-screen");
+  const friendScreen = document.getElementById("friend-screen");
+  const waitForGameToStartScreen = document.getElementById("wait-screen");
+  const ownerWaitScreen = document.getElementById("owner-wait-screen");
+  const startedScreen = document.getElementById("started-screen");
+  const practiceScreen = document.getElementById("practice-screen");
+  const instructionScreen = document.getElementById("instruction-screen");
+  const scoreGrid = document.getElementById("score-grid");
+  const introSpinner = document.getElementById("loading-spinner");
   // do not await until needed
   const audioDataPromise = getAudioData();
   // routing
@@ -966,10 +965,10 @@ const main = async () => {
     if (routing.hash.substring(0, 4) === "#/r/") {
       // we have been invited to a game
       const title = routing.hash.substring(4);
-      const nameInput = $("#spooky-name-friend");
+      const nameInput = document.getElementById("spooky-name-friend");
       const goHandler = () => {
         setupAudioContext();
-        const name = nameInput.val();
+        const name = nameInput.value;
         if (name.length < 3 || name.length > 16) {
           Swal.fire({
             title: "Yikes!",
@@ -978,20 +977,24 @@ const main = async () => {
           });
         } else {
           const continuation = async () => {
-            friendScreen.addClass("hidden");
-            introSpinner.removeClass("hidden");
+            friendScreen.classList.add("hidden");
+            introSpinner.classList.remove("hidden");
             logEvent(analytics, "starts_game_friend", {
               ride: title,
             });
             claimPlayerPromise = claimPlayerLoop({ title, name });
             const claimPlayerRes = await claimPlayerPromise;
             if (claimPlayerRes === false) {
-              introSpinner.addClass("hidden");
-              startedScreen.removeClass("hidden");
+              introSpinner.classList.add("hidden");
+              startedScreen.classList.remove("hidden");
             } else {
-              introSpinner.addClass("hidden");
-              waitForGameToStartScreen.removeClass("hidden");
-              const unsubForJoin = showWhoHasJoined(title, claimPlayerRes);
+              introSpinner.classList.add("hidden");
+              waitForGameToStartScreen.classList.remove("hidden");
+              const unsubForJoin = showWhoHasJoined(
+                title,
+                claimPlayerRes,
+                "who-has-joined-friend"
+              );
               let started = false;
               let unsub;
               unsub = listen({
@@ -1010,8 +1013,8 @@ const main = async () => {
                     await doTimeout(
                       data.startsAt > timeNow ? data.startsAt - timeNow : 0
                     );
-                    waitForGameToStartScreen.addClass("hidden");
-                    scoreGrid.removeClass("hidden");
+                    waitForGameToStartScreen.classList.add("hidden");
+                    scoreGrid.classList.remove("hidden");
                     await doGame({
                       title,
                       audioDataPromise,
@@ -1033,34 +1036,38 @@ const main = async () => {
           continuation();
         }
       };
-      nameInput.on("keyup", function (e) {
+      nameInput.addEventListener("keyup", (e) => {
         if (e.key === "Enter" || e.keyCode === 13) {
           goHandler();
         }
       });
-      $("#start-game-friend").on("click", goHandler);
-      introSpinner.addClass("hidden");
-      friendScreen.removeClass("hidden");
+      document
+        .getElementById("start-game-friend")
+        .addEventListener("click", goHandler);
+      introSpinner.classList.add("hidden");
+      friendScreen.classList.remove("hidden");
       ////
     } else if (routing.hash.substring(0, 3) === "#/p") {
       // we are starting from scratch
-      $("#start-game-practice").on("click", async () => {
-        setupAudioContext();
-        await handleFullScreen();
-        const player = 1;
-        await doGame({ audioDataPromise, practice: true, player });
-        practiceScreen.addClass("hidden");
-        scoreGrid.removeClass("hidden");
-        await togglePlayBack({ audioDataPromise, player })();
-      });
-      introSpinner.addClass("hidden");
-      practiceScreen.removeClass("hidden");
+      document
+        .getElementById("start-game-practice")
+        .addEventListener("click", async () => {
+          setupAudioContext();
+          await handleFullScreen();
+          const player = 1;
+          await doGame({ audioDataPromise, practice: true, player });
+          practiceScreen.classList.add("hidden");
+          scoreGrid.classList.remove("hidden");
+          await togglePlayBack({ audioDataPromise, player })();
+        });
+      introSpinner.classList.add("hidden");
+      practiceScreen.classList.remove("hidden");
     } else {
       // we are starting from scratch
       gamePromise = signInPromise.then(createGame);
-      const nameInput = $("#spooky-name");
+      const nameInput = document.getElementById("spooky-name");
       const goHandler = () => {
-        const name = nameInput.val();
+        const name = nameInput.value;
         if (name.length < 3 || name.length > 16) {
           Swal.fire({
             title: "Yikes!",
@@ -1071,82 +1078,86 @@ const main = async () => {
           claimPlayerPromise = gamePromise.then(({ title }) =>
             claimPlayerLoop({ title, name })
           );
-          introScreen.addClass("hidden");
-          instructionScreen.removeClass("hidden");
+          introScreen.classList.add("hidden");
+          instructionScreen.classList.remove("hidden");
           let unsub;
           Promise.all([gamePromise, claimPlayerPromise]).then(
             ([{ title }, player]) => {
-              unsub = showWhoHasJoined(title, player);
+              unsub = showWhoHasJoined(title, player, "who-has-joined");
             }
           );
           gamePromise.then(({ title }) => {
-            $("#share-link").val(
-              import.meta.env.PROD
-                ? `https://joyride.fm/#/r/${title}`
-                : `http://localhost:5173/#/r/${title}`
-            );
-            $("#share-button").removeClass("invisible");
-            $("#share-button").addClass("visible");
+            document.getElementById("share-link").value = import.meta.env.PROD
+              ? `https://joyride.fm/#/r/${title}`
+              : `http://localhost:5173/#/r/${title}`;
+            const shareButton = document.getElementById("share-button");
+            shareButton.classList.remove("invisible");
+            shareButton.classList.add("visible");
           });
-          $("#start-game").on("click", () => {
-            setupAudioContext();
-            instructionScreen.addClass("hidden");
-            if (unsub) {
-              unsub();
-            }
-            (async () => {
-              await handleFullScreen();
-              ownerWaitScreen.removeClass("hidden");
-              const claimPlayerRes = await claimPlayerPromise;
-              const starting = new Date();
-              const { title } = await gamePromise;
-              logEvent(analytics, "starts_game", {
-                ride: title,
-              });
-              await setStart({
-                title,
-                startsAt: starting.getTime() + START_DELAY,
-              });
-              await doTimeout(START_DELAY);
-              ownerWaitScreen.addClass("hidden");
-              scoreGrid.removeClass("hidden");
-              await doGame({
-                audioDataPromise,
-                practice: false,
-                player: claimPlayerRes,
-                title,
-                name,
-              });
-              await togglePlayBack({
-                audioDataPromise,
-                title,
-                player: claimPlayerRes,
-                name,
+          document
+            .getElementById("start-game")
+            .addEventListener("click", () => {
+              setupAudioContext();
+              instructionScreen.classList.add("hidden");
+              if (unsub) {
+                unsub();
+              }
+              (async () => {
+                await handleFullScreen();
+                ownerWaitScreen.classList.remove("hidden");
+                const claimPlayerRes = await claimPlayerPromise;
+                const starting = new Date();
+                const { title } = await gamePromise;
+                logEvent(analytics, "starts_game", {
+                  ride: title,
+                });
+                await setStart({
+                  title,
+                  startsAt: starting.getTime() + START_DELAY,
+                });
+                await doTimeout(START_DELAY);
+                ownerWaitScreen.classList.add("hidden");
+                scoreGrid.classList.remove("hidden");
+                await doGame({
+                  audioDataPromise,
+                  practice: false,
+                  player: claimPlayerRes,
+                  title,
+                  name,
+                });
+                await togglePlayBack({
+                  audioDataPromise,
+                  title,
+                  player: claimPlayerRes,
+                  name,
+                })();
               })();
-            })();
-          });
+            });
         }
       };
-      nameInput.on("keyup", function (e) {
+      nameInput.addEventListener("keyup", (e) => {
         if (e.key === "Enter" || e.keyCode === 13) {
           goHandler();
         }
       });
-      $("#new-game").on("click", goHandler);
+      document.getElementById("new-game").addEventListener("click", goHandler);
 
-      introSpinner.addClass("hidden");
-      introScreen.removeClass("hidden");
+      introSpinner.classList.add("hidden");
+      introScreen.classList.remove("hidden");
     }
   };
   new ClipboardJS(".clippy");
-  $(".clippy").on("click", () => {
-    Swal.fire({
-      title: "Copied!",
-      text: "The link is copied to your clipboard. Send it to up to 7 friends!",
-      timer: 2000,
-      confirmButtonText: "Got it 👍",
-    });
-  });
+  Array.from(document.getElementsByClassName("clippy")).forEach((e) =>
+    e.addEventListener("click", () => {
+      Swal.fire({
+        title: "Copied!",
+        text: "The link is copied to your clipboard. Send it to up to 7 friends!",
+        timer: 2000,
+        confirmButtonText: "Got it 👍",
+      });
+    })
+  );
+
   // for now don't track hash changes as we're not doing any in-app navigation
   // window.addEventListener("hashchange", hashChange);
   hashChange();

@@ -33,7 +33,6 @@
     "eruda": "^2.5.0",
     "firebase": "^9.12.1",
     "flowbite": "^1.5.3",
-    "jquery": "^3.6.1",
     "lil-gui": "^0.17.0",
     "mobile-detect": "^1.4.5",
     "rxjs": "^7.5.7",
