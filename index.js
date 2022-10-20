@@ -86,6 +86,8 @@ import {
   shiftLeft,
   shiftRight,
 } from "./firebase/firestore";
+import { logEvent } from "firebase/analytics";
+import { analytics } from "./firebase/init";
 
 // how far in the back we look to disqualify something as a miss
 // change this is the TABLE_DENSITY_FACTOR is no longer 10
@@ -373,6 +375,11 @@ const main = async () => {
               finalScore += score.score;
               await createScore({ score: finalScore, name, ride: title });
               const rank = await getRank({ score: score.score });
+              logEvent(analytics, "finishes_game", {
+                ride: title,
+                score: finalScore,
+              });
+
               Swal.fire({
                 title: "Congrats!",
                 text: `Your final score is ${finalScore.toFixed(
@@ -921,7 +928,7 @@ const main = async () => {
               comboCount = 0;
               scoreSpan.text("Miss!");
               comboSpan.text(comboCount);
-              break;  
+              break;
             }
           }
         }
@@ -973,6 +980,9 @@ const main = async () => {
           const continuation = async () => {
             friendScreen.addClass("hidden");
             introSpinner.removeClass("hidden");
+            logEvent(analytics, "starts_game_friend", {
+              ride: title,
+            });
             claimPlayerPromise = claimPlayerLoop({ title, name });
             const claimPlayerRes = await claimPlayerPromise;
             if (claimPlayerRes === false) {
@@ -1090,6 +1100,9 @@ const main = async () => {
               const claimPlayerRes = await claimPlayerPromise;
               const starting = new Date();
               const { title } = await gamePromise;
+              logEvent(analytics, "starts_game", {
+                ride: title,
+              });
               await setStart({
                 title,
                 startsAt: starting.getTime() + START_DELAY,
