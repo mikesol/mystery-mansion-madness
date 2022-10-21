@@ -46,12 +46,15 @@ export const getGame = async ({ title }) => {
 
 export const createScore = async ({ name, score, ride }) => {
   const title = makeid(6);
-  await setDoc(doc(db, "scores", title), {
-    name,
+  const toUpdate = {
     score,
     ride,
     uid: auth.currentUser.uid,
-  });
+  };
+  if (name) {
+    toUpdate["name"] = name;
+  }
+  await setDoc(doc(db, "scores", title), toUpdate);
 };
 
 export const getRank = async ({ score }) => {
@@ -70,6 +73,12 @@ export const setStart = async ({ title, startsAt }) => {
   await updateDoc(doc(db, "rides", title), {
     startsAt,
   });
+};
+
+export const updatePlayerName = async ({ title, player, name }) => {
+  const toUpdate = {};
+  toUpdate[`player${player}Name`] = name;
+  await updateDoc(doc(db, "rides", title), toUpdate);
 };
 
 export const claimPlayerLoop = async ({ title, name }) => {
@@ -97,7 +106,12 @@ export const claimPlayerLoop = async ({ title, name }) => {
       if (i !== undefined) {
         const toUpdate = {};
         toUpdate["player" + i] = auth.currentUser.uid;
-        toUpdate["player" + i + "Name"] = name;
+        // if we are starting the game from scratch and not inviting anyone,
+        // there won't be a name yet
+        // so only add the name if it is defined
+        if (name) {
+          toUpdate["player" + i + "Name"] = name;
+        }
         toUpdate["player" + i + "Position"] = i;
         console.log("updating", toUpdate);
         transaction.update(docRef, toUpdate);

@@ -84,6 +84,7 @@ import {
   setStart,
   shiftLeft,
   shiftRight,
+  updatePlayerName,
 } from "./firebase/firestore";
 import { logEvent } from "firebase/analytics";
 import { analytics } from "./firebase/init";
@@ -953,6 +954,8 @@ const main = async () => {
   const instructionScreen = document.getElementById("instruction-screen");
   const scoreGrid = document.getElementById("score-grid");
   const introSpinner = document.getElementById("loading-spinner");
+  const myNameIs = document.getElementById("my-name-is");
+  const postNameScreen = document.getElementById("post-name-screen");
   // do not await until needed
   const audioDataPromise = getAudioData();
   // routing
@@ -1065,81 +1068,104 @@ const main = async () => {
     } else {
       // we are starting from scratch
       gamePromise = signInPromise.then(createGame);
-      const nameInput = document.getElementById("spooky-name");
       const goHandler = () => {
-        const name = nameInput.value;
-        if (name.length < 3 || name.length > 16) {
-          Swal.fire({
-            title: "Yikes!",
-            text: "Names must be between 3 and 16 characters",
-            confirmButtonText: "Got it",
-          });
-        } else {
-          claimPlayerPromise = gamePromise.then(({ title }) =>
-            claimPlayerLoop({ title, name })
-          );
-          introScreen.classList.add("hidden");
-          instructionScreen.classList.remove("hidden");
-          let unsub;
-          Promise.all([gamePromise, claimPlayerPromise]).then(
-            ([{ title }, player]) => {
-              unsub = showWhoHasJoined(title, player, "who-has-joined");
+        claimPlayerPromise = gamePromise.then(({ title }) =>
+          claimPlayerLoop({ title })
+        );
+        // hide the intro screen
+        introScreen.classList.add("hidden");
+        // show the screen with instructions
+        instructionScreen.classList.remove("hidden");
+        let unsub;
+        Promise.all([gamePromise, claimPlayerPromise]).then(
+          ([{ title }, player]) => {
+            unsub = showWhoHasJoined(title, player, "who-has-joined");
+          }
+        );
+        gamePromise.then(({ title }) => {
+          document.getElementById("share-link").value = import.meta.env.PROD
+            ? `https://joyride.fm/#/r/${title}`
+            : `http://localhost:5173/#/r/${title}`;
+          const shareButton = document.getElementById("share-button");
+          shareButton.classList.remove("invisible");
+          shareButton.classList.add("visible");
+        });
+        const doStartGame =
+          ({ name, screenToHide }) =>
+          () => {
+            setupAudioContext();
+            screenToHide.classList.add("hidden");
+            if (unsub) {
+              unsub();
             }
-          );
-          gamePromise.then(({ title }) => {
-            document.getElementById("share-link").value = import.meta.env.PROD
-              ? `https://joyride.fm/#/r/${title}`
-              : `http://localhost:5173/#/r/${title}`;
-            const shareButton = document.getElementById("share-button");
-            shareButton.classList.remove("invisible");
-            shareButton.classList.add("visible");
-          });
-          document
-            .getElementById("start-game")
-            .addEventListener("click", () => {
-              setupAudioContext();
-              instructionScreen.classList.add("hidden");
-              if (unsub) {
-                unsub();
-              }
-              (async () => {
-                await handleFullScreen();
-                ownerWaitScreen.classList.remove("hidden");
-                const claimPlayerRes = await claimPlayerPromise;
-                const starting = new Date();
-                const { title } = await gamePromise;
-                logEvent(analytics, "starts_game", {
-                  ride: title,
-                });
-                await setStart({
-                  title,
-                  startsAt: starting.getTime() + START_DELAY,
-                });
-                await doTimeout(START_DELAY);
-                ownerWaitScreen.classList.add("hidden");
-                scoreGrid.classList.remove("hidden");
-                await doGame({
-                  audioDataPromise,
-                  practice: false,
-                  player: claimPlayerRes,
-                  title,
-                  name,
-                });
-                await togglePlayBack({
-                  audioDataPromise,
-                  title,
-                  player: claimPlayerRes,
-                  name,
-                })();
+            (async () => {
+              await handleFullScreen();
+              ownerWaitScreen.classList.remove("hidden");
+              const claimPlayerRes = await claimPlayerPromise;
+              const starting = new Date();
+              const { title } = await gamePromise;
+              logEvent(analytics, "starts_game", {
+                ride: title,
+              });
+              await setStart({
+                title,
+                startsAt: starting.getTime() + START_DELAY,
+              });
+              await doTimeout(START_DELAY);
+              ownerWaitScreen.classList.add("hidden");
+              scoreGrid.classList.remove("hidden");
+              await doGame({
+                audioDataPromise,
+                practice: false,
+                player: claimPlayerRes,
+                title,
+              });
+              await togglePlayBack({
+                audioDataPromise,
+                title,
+                player: claimPlayerRes,
+                name,
               })();
+            })();
+          };
+        document
+          .getElementById("start-game")
+          .addEventListener("click", doStartGame({ name: undefined, screenToHide: instructionScreen }));
+        document
+          .getElementById("share-button")
+          .addEventListener("click", () => {
+            instructionScreen.classList.add("hidden");
+            myNameIs.classList.remove("hidden");
+            const nameInput = document.getElementById("spooky-name");
+            nameInput.addEventListener("keyup", (e) => {
+              if (e.key === "Enter" || e.keyCode === 13) {
+                goHandler();
+              }
             });
-        }
+            document
+              .getElementById("next-after-name-enter")
+              .addEventListener("click", async () => {
+                const name = nameInput.value;
+                if (name.length < 3 || name.length > 16) {
+                  Swal.fire({
+                    title: "Yikes!",
+                    text: "Names must be between 3 and 16 characters",
+                    confirmButtonText: "Got it",
+                  });
+                } else {
+                  const { title } = await gamePromise;
+                  const claimPlayerRes = await claimPlayerPromise;
+                  // fire async, don't really care when this finishes
+                  updatePlayerName({ title, player: claimPlayerRes, name });
+                  myNameIs.classList.add("hidden");
+                  postNameScreen.classList.remove("hidden");
+                  document
+                  .getElementById("start-game-after-name")
+                  .addEventListener("click", doStartGame({ name, screenToHide: postNameScreen }));
+                }
+              });
+          });
       };
-      nameInput.addEventListener("keyup", (e) => {
-        if (e.key === "Enter" || e.keyCode === 13) {
-          goHandler();
-        }
-      });
       document.getElementById("new-game").addEventListener("click", goHandler);
 
       introSpinner.classList.add("hidden");
