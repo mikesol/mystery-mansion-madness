@@ -976,7 +976,7 @@ const main = async () => {
           Swal.fire({
             title: "Yikes!",
             text: "Names must be between 3 and 16 characters",
-            confirmButtonText: "Got it",
+            confirmButtonText: "Got it 👍",
           });
         } else {
           const continuation = async () => {
@@ -1036,7 +1036,15 @@ const main = async () => {
               });
             }
           };
-          continuation();
+          if (window.innerHeight > window.innerWidth && IS_MOBILE) {
+            Swal.fire({
+              title: "Heads up!",
+              text: `This game works best in landscape mode.`,
+              confirmButtonText: "Got it 👍",
+            }).then(continuation);
+          } else {
+            continuation();
+          }
         }
       };
       nameInput.addEventListener("keyup", (e) => {
@@ -1130,7 +1138,10 @@ const main = async () => {
           };
         document
           .getElementById("start-game")
-          .addEventListener("click", doStartGame({ name: undefined, screenToHide: instructionScreen }));
+          .addEventListener(
+            "click",
+            doStartGame({ name: undefined, screenToHide: instructionScreen })
+          );
         document
           .getElementById("share-button")
           .addEventListener("click", () => {
@@ -1150,7 +1161,7 @@ const main = async () => {
                   Swal.fire({
                     title: "Yikes!",
                     text: "Names must be between 3 and 16 characters",
-                    confirmButtonText: "Got it",
+                    confirmButtonText: "Got it 👍",
                   });
                 } else {
                   const { title } = await gamePromise;
@@ -1160,8 +1171,11 @@ const main = async () => {
                   myNameIs.classList.add("hidden");
                   postNameScreen.classList.remove("hidden");
                   document
-                  .getElementById("start-game-after-name")
-                  .addEventListener("click", doStartGame({ name, screenToHide: postNameScreen }));
+                    .getElementById("start-game-after-name")
+                    .addEventListener(
+                      "click",
+                      doStartGame({ name, screenToHide: postNameScreen })
+                    );
                 }
               });
           });
