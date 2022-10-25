@@ -2,7 +2,13 @@
 
 import { AndroidFullScreen } from "@awesome-cordova-plugins/android-full-screen";
 import "flowbite";
-import * as three from "three";
+import { Group } from "three/src/objects/Group";
+import { TextureLoader } from "three/src/loaders/TextureLoader";
+import { Raycaster } from "three/src/core/Raycaster";
+import { WebGLRenderer } from "three/src/renderers/WebGLRenderer";
+import { Scene } from "three/src/scenes/Scene";
+import { Euler } from "three/src/math/Euler";
+import { Vector2 } from "three/src/math/Vector2";
 import { GROUPS } from "./core/groups";
 import { createCamera } from "./camera.js";
 import * as HALLOWEEN from "./core/halloween0.js";
@@ -85,6 +91,8 @@ import {
 } from "./firebase/firestore";
 import { logEvent } from "firebase/analytics";
 import { analytics } from "./firebase/init";
+
+const three2 = { Group, Euler, TextureLoader, WebGLRenderer, Scene ,Vector2, Raycaster};
 
 // how far in the back we look to disqualify something as a miss
 // change this is the TABLE_DENSITY_FACTOR is no longer 10
@@ -196,8 +204,8 @@ const makeGroup = ({ scene, side, groupId, multtxt }) => {
     groupId,
   });
 
-  const sideGroup = new three.Group();
-  const railGroup = new three.Group();
+  const sideGroup = new three2.Group();
+  const railGroup = new three2.Group();
 
   sideGroup.add(laneNoteMesh);
 
@@ -272,7 +280,7 @@ const makeGroup = ({ scene, side, groupId, multtxt }) => {
     sideGroup.visible = false;
   }
   if (side === SIDES.CENTER) {
-    railGroup.setRotationFromEuler(new three.Euler(0.0, 0.0, -RAIL_ROTATION));
+    railGroup.setRotationFromEuler(new three2.Euler(0.0, 0.0, -RAIL_ROTATION));
   }
   railGroup.position.copy(
     side === SIDES.CENTER ? RAIL_CENTER_POSITION : RAIL_SIDE_POSITION
@@ -406,7 +414,7 @@ const main = async () => {
     stormVideo.classList.remove("opacity-0");
     stormVideo.classList.add(FULL_VIDEO_OPACITY);
     // textures
-    const loader = new three.TextureLoader();
+    const loader = new three2.TextureLoader();
     const [t1x, t2x, t3x, t5x, t8x] = await Promise.all([
       loader.loadAsync(oneX),
       loader.loadAsync(twoX),
@@ -418,14 +426,14 @@ const main = async () => {
     // canvas
     const canvas = document.getElementById("joyride-canvas");
     // renderer
-    const renderer = new three.WebGLRenderer({ canvas, alpha: true });
+    const renderer = new three2.WebGLRenderer({ canvas, alpha: true });
     // camera
     const camera = createCamera(canvas.clientWidth / canvas.clientHeight);
     //raycaster
-    const raycaster = new three.Raycaster();
+    const raycaster = new three2.Raycaster();
 
     // scene
-    const scene = new three.Scene();
+    const scene = new three2.Scene();
     const pm1 = player - 1;
     const ALL_GROUPS = [
       makeGroup({
@@ -559,7 +567,7 @@ const main = async () => {
       }
     };
 
-    const pointerBuffer = new three.Vector2();
+    const pointerBuffer = new three2.Vector2();
 
     const doShift = (dir) => {
       const previousGroupIndex = currentGroupIndex;
