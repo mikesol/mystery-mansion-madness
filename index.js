@@ -2,7 +2,6 @@
 
 import { AndroidFullScreen } from "@awesome-cordova-plugins/android-full-screen";
 import GUI from "lil-gui";
-import * as eruda from "eruda";
 import "flowbite";
 import Stats from "stats.js";
 import * as three from "three";
@@ -306,7 +305,6 @@ const main = async () => {
   stats.showPanel(0);
   if (import.meta.env.DEV) {
     document.body.appendChild(stats.dom);
-    eruda.init();
   }
   AndroidFullScreen.isImmersiveModeSupported()
     .then(() => AndroidFullScreen.immersiveMode())
