@@ -1,9 +1,7 @@
 "use strict";
 
 import { AndroidFullScreen } from "@awesome-cordova-plugins/android-full-screen";
-import GUI from "lil-gui";
 import "flowbite";
-import Stats from "stats.js";
 import * as three from "three";
 import { GROUPS } from "./core/groups";
 import { createCamera } from "./camera.js";
@@ -297,14 +295,13 @@ const makeGroup = ({ scene, side, groupId, multtxt }) => {
 
 const main = async () => {
   // dev
-  const gui = new GUI();
-  if (import.meta.env.PROD) {
-    gui.hide();
-  }
-  const stats = new Stats();
-  stats.showPanel(0);
+  let stats;
   if (import.meta.env.DEV) {
-    document.body.appendChild(stats.dom);
+    import("stats.js").then((Stats) => {
+      stats = new Stats.default();
+      stats.showPanel(0);
+      document.body.appendChild(stats.dom);
+    });
   }
   AndroidFullScreen.isImmersiveModeSupported()
     .then(() => AndroidFullScreen.immersiveMode())
@@ -548,15 +545,6 @@ const main = async () => {
     const comboSpan = document.getElementById("combo-text");
     const realScore = document.getElementById("real-score");
 
-    const context = {
-      movementThreshold: 1.0,
-    };
-
-    if (import.meta.env.DEV) {
-      gui
-        .add(context, "movementThreshold", 0.5, 1.5)
-        .name("Movement Threshold");
-    }
     const tryResizeRendererToDisplay = () => {
       const canvas = renderer.domElement;
       const pixelRatio = window.devicePixelRatio;
@@ -934,9 +922,13 @@ const main = async () => {
 
       tryResizeRendererToDisplay();
 
-      stats.begin();
+      if (import.meta.env.DEV) {
+        stats.begin();
+      }
       renderer.render(scene, camera);
-      stats.end();
+      if (import.meta.env.DEV) {
+        stats.end();
+      }
 
       requestAnimationFrame(renderLoop);
     };

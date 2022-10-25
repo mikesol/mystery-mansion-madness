@@ -12,12 +12,10 @@ specifiers:
   clipboard: ^2.0.11
   cordova-plugin-fullscreen: ^1.3.0
   double-ended-queue: 2.1.0-0
-  eruda: ^2.5.0
   eslint: ^8.25.0
   firebase: ^9.12.1
   flowbite: ^1.5.3
   htmlhint: ^1.1.4
-  lil-gui: ^0.17.0
   mobile-detect: ^1.4.5
   postcss: ^8.4.18
   prettier: ^2.7.1
@@ -39,10 +37,8 @@ dependencies:
   clipboard: 2.0.11
   cordova-plugin-fullscreen: 1.3.0
   double-ended-queue: 2.1.0-0
-  eruda: 2.5.0
   firebase: 9.12.1
   flowbite: 1.5.3
-  lil-gui: 0.17.0
   mobile-detect: 1.4.5
   rxjs: 7.5.7
   screenfull: 6.0.2
@@ -1210,10 +1206,6 @@ packages:
     engines: {node: '>=6'}
     dev: true
 
-  /eruda/2.5.0:
-    resolution: {integrity: sha512-ardSJe7AfCPTzaLJVieX0FwzuL56rDDFemnK1ETcZPsrZcUqYAjUb7gpJPgSj9x06PmeGGGFJKrSlZ0F0d4lJQ==}
-    dev: false
-
   /esbuild-android-64/0.15.7:
     resolution: {integrity: sha512-p7rCvdsldhxQr3YHxptf1Jcd86dlhvc3EQmQJaZzzuAxefO9PvcI0GLOa5nCWem1AJ8iMRu9w0r5TG8pHmbi9w==}
     engines: {node: '>=12'}
@@ -1941,10 +1933,6 @@ packages:
     resolution: {integrity: sha512-UaiMJzeWRlEujzAuw5LokY1L5ecNQYZKfmyZ9L7wDHb/p5etKaxXhohBcrw0EYby+G/NA52vRSN4N39dxHAIwQ==}
     dependencies:
       immediate: 3.0.6
-    dev: false
-
-  /lil-gui/0.17.0:
-    resolution: {integrity: sha512-MVBHmgY+uEbmJNApAaPbtvNh1RCAeMnKym82SBjtp5rODTYKWtM+MXHCifLe2H2Ti1HuBGBtK/5SyG4ShQ3pUQ==}
     dev: false
 
   /lilconfig/2.0.6:
