@@ -1,7 +1,22 @@
 "use strict";
 
-import * as three from "three";
+import { BoxGeometry } from "three/src/geometries/BoxGeometry";
+import { MeshBasicMaterial } from "three/src/materials/MeshBasicMaterial";
+import { Mesh } from "three/src/objects/Mesh";
+import { Quaternion } from "three/src/math/Quaternion";
+import { Vector3 } from "three/src/math/Vector3";
+import { Matrix4 } from "three/src/math/Matrix4";
+import { Euler } from "three/src/math/Euler";
 
+const three2 = {
+  BoxGeometry,
+  MeshBasicMaterial,
+  Mesh,
+  Quaternion,
+  Vector3,
+  Matrix4,
+  Euler,
+};
 export const MULTIPLIER_SCALE_X = 0.5;
 export const MULTIPLIER_SCALE_Y = 0.001;
 export const MULTIPLIER_SCALE_Z = 0.5;
@@ -9,9 +24,13 @@ export const MULTIPLIER_POSITION_X = 0.0;
 export const MULTIPLIER_POSITION_Y = 0.0005;
 export const MULTIPLIER_POSITION_Z = -1.0;
 export const MULTIPLIER_GEOMETRY = () =>
-  new three.BoxGeometry(MULTIPLIER_SCALE_X, MULTIPLIER_SCALE_Y, MULTIPLIER_SCALE_Z);
-export const MULTIPLIER_MATERIAL = ({multtxt}) =>
-  new three.MeshBasicMaterial({
+  new three2.BoxGeometry(
+    MULTIPLIER_SCALE_X,
+    MULTIPLIER_SCALE_Y,
+    MULTIPLIER_SCALE_Z
+  );
+export const MULTIPLIER_MATERIAL = ({ multtxt }) =>
+  new three2.MeshBasicMaterial({
     color: 0xffffff,
     map: multtxt,
     transparent: true,
@@ -27,25 +46,31 @@ export const HIGHWAY_POSITION_X = 0.0;
 export const HIGHWAY_POSITION_Y = 0.0;
 export const HIGHWAY_POSITION_Z = -2.4;
 export const HIGHWAY_GEOMETRY = () =>
-  new three.BoxGeometry(HIGHWAY_SCALE_X, HIGHWAY_SCALE_Y, HIGHWAY_SCALE_Z);
+  new three2.BoxGeometry(HIGHWAY_SCALE_X, HIGHWAY_SCALE_Y, HIGHWAY_SCALE_Z);
 export const HIGHWAY_MATERIAL = () =>
-  new three.MeshBasicMaterial({
+  new three2.MeshBasicMaterial({
     color: 0x353436,
-    transparent: true
+    transparent: true,
   });
 
 export const createHighway = () => {
-  const mesh = new three.Mesh(HIGHWAY_GEOMETRY(), HIGHWAY_MATERIAL());
+  const mesh = new three2.Mesh(HIGHWAY_GEOMETRY(), HIGHWAY_MATERIAL());
   mesh.position.set(HIGHWAY_POSITION_X, HIGHWAY_POSITION_Y, HIGHWAY_POSITION_Z);
   return mesh;
 };
 
-export const createMultiplier = ({multtxt}) => {
-  const mesh = new three.Mesh(MULTIPLIER_GEOMETRY(), MULTIPLIER_MATERIAL({multtxt}));
-  mesh.position.set(MULTIPLIER_POSITION_X, MULTIPLIER_POSITION_Y, MULTIPLIER_POSITION_Z);
+export const createMultiplier = ({ multtxt }) => {
+  const mesh = new three2.Mesh(
+    MULTIPLIER_GEOMETRY(),
+    MULTIPLIER_MATERIAL({ multtxt })
+  );
+  mesh.position.set(
+    MULTIPLIER_POSITION_X,
+    MULTIPLIER_POSITION_Y,
+    MULTIPLIER_POSITION_Z
+  );
   return mesh;
 };
-
 
 export const JUDGE_SCALE_X = HIGHWAY_SCALE_X;
 export const JUDGE_SCALE_Y = HIGHWAY_SCALE_Y;
@@ -53,15 +78,15 @@ export const JUDGE_SCALE_Z = 0.01;
 export const JUDGE_POSITION_X = 0.0;
 export const JUDGE_POSITION_Y = 0.003;
 export const JUDGE_POSITION_Z = 0.0;
-export const JUDGE_GEOMETRY = new three.BoxGeometry(
+export const JUDGE_GEOMETRY = new three2.BoxGeometry(
   JUDGE_SCALE_X,
   JUDGE_SCALE_Y,
   JUDGE_SCALE_Z
 );
-export const JUDGE_MATERIAL = new three.MeshBasicMaterial({ color: 0xffffff });
+export const JUDGE_MATERIAL = new three2.MeshBasicMaterial({ color: 0xffffff });
 
 export const createJudge = () => {
-  const mesh = new three.Mesh(JUDGE_GEOMETRY, JUDGE_MATERIAL);
+  const mesh = new three2.Mesh(JUDGE_GEOMETRY, JUDGE_MATERIAL);
   mesh.position.set(JUDGE_POSITION_X, JUDGE_POSITION_Y, JUDGE_POSITION_Z);
   return mesh;
 };
@@ -74,27 +99,27 @@ export const RAIL_SCALE_Z = HIGHWAY_SCALE_Z;
 export const RAIL_POSITION_Z = HIGHWAY_POSITION_Z;
 export const RAIL_OFFSET = RAIL_SCALE_X / 2 / Math.sqrt(2);
 export const RAIL_ROTATION = (45 * Math.PI) / 180;
-export const RAIL_CENTER_QUTERNION = new three.Quaternion().setFromEuler(
-  new three.Euler(0.0, 0.0, -RAIL_ROTATION)
+export const RAIL_CENTER_QUTERNION = new three2.Quaternion().setFromEuler(
+  new three2.Euler(0.0, 0.0, -RAIL_ROTATION)
 );
-export const RAIL_SIDE_QUTERNION = new three.Quaternion();
-export const RAIL_CENTER_POSITION = new three.Vector3(
-  -HIGHWAY_SCALE_X / 2 -RAIL_OFFSET,
+export const RAIL_SIDE_QUTERNION = new three2.Quaternion();
+export const RAIL_CENTER_POSITION = new three2.Vector3(
+  -HIGHWAY_SCALE_X / 2 - RAIL_OFFSET,
   RAIL_OFFSET,
   0.0
 );
-export const RAIL_SIDE_POSITION = new three.Vector3(
-  -HIGHWAY_SCALE_X / 2 -RAIL_SCALE_X / 2,
+export const RAIL_SIDE_POSITION = new three2.Vector3(
+  -HIGHWAY_SCALE_X / 2 - RAIL_SCALE_X / 2,
   0.0,
   0.0
 );
 
-export const RAIL_GEOMETRY = new three.BoxGeometry(
+export const RAIL_GEOMETRY = new three2.BoxGeometry(
   RAIL_SCALE_X,
   RAIL_SCALE_Y,
   RAIL_SCALE_Z
 );
-export const RAIL_MATERIAL = new three.MeshBasicMaterial({ color: 0x4a4847 });
+export const RAIL_MATERIAL = new three2.MeshBasicMaterial({ color: 0x4a4847 });
 
 export const SIDES = {
   LEFT_SIDE: -42,
@@ -114,36 +139,34 @@ export const SIDES_CLOCKWISE = [
   SIDES.OFF_SCREEN,
   SIDES.RIGHT_ON_DECK,
   SIDES.RIGHT_SIDE,
-]
+];
 
 export const createRails = () => {
-  const mesh = new three.Mesh(RAIL_GEOMETRY, RAIL_MATERIAL);
+  const mesh = new three2.Mesh(RAIL_GEOMETRY, RAIL_MATERIAL);
 
-  const leftRailMatrix = new three.Matrix4();
-  leftRailMatrix.setPosition(
-    new three.Vector3(0.0, 0.0, RAIL_POSITION_Z)
-  );
+  const leftRailMatrix = new three2.Matrix4();
+  leftRailMatrix.setPosition(new three2.Vector3(0.0, 0.0, RAIL_POSITION_Z));
   mesh.applyMatrix4(leftRailMatrix);
 
   return mesh;
 };
 
-export const RAIL_JUDGE_GEOMETRY = new three.BoxGeometry(
+export const RAIL_JUDGE_GEOMETRY = new three2.BoxGeometry(
   RAIL_SCALE_X,
   JUDGE_SCALE_Y,
   JUDGE_SCALE_Z
 );
-export const RAIL_JUDGE_MATERIAL = new three.MeshBasicMaterial({
+export const RAIL_JUDGE_MATERIAL = new three2.MeshBasicMaterial({
   color: 0xffffff,
 });
 
 export const createRailJudge = () => {
-  const mesh = new three.Mesh(RAIL_JUDGE_GEOMETRY, RAIL_JUDGE_MATERIAL);
+  const mesh = new three2.Mesh(RAIL_JUDGE_GEOMETRY, RAIL_JUDGE_MATERIAL);
 
-  const leftRailJudgeMatrix = new three.Matrix4();
+  const leftRailJudgeMatrix = new three2.Matrix4();
 
   leftRailJudgeMatrix.setPosition(
-    new three.Vector3(0.0, 0.003, JUDGE_POSITION_Z)
+    new three2.Vector3(0.0, 0.003, JUDGE_POSITION_Z)
   );
   mesh.applyMatrix4(leftRailJudgeMatrix);
 
@@ -156,19 +179,19 @@ export const LANE_DIM_SCALE_Z = HIGHWAY_SCALE_Z;
 export const LANE_DIM_POSITION_Y = 0.0003;
 export const LANE_DIM_POSITION_Z = HIGHWAY_POSITION_Z;
 export const LANE_DIM_SPACE_BETWEEN = HIGHWAY_SCALE_X_PADDING / 5;
-export const LANE_DIM_GEOMETRY = new three.BoxGeometry(
+export const LANE_DIM_GEOMETRY = new three2.BoxGeometry(
   LANE_DIM_SCALE_X,
   LANE_DIM_SCALE_Y,
   LANE_DIM_SCALE_Z
 );
-export const LANE_DIM_MATERIAL = new three.MeshBasicMaterial({
+export const LANE_DIM_MATERIAL = new three2.MeshBasicMaterial({
   color: 0xffffff,
   transparent: true,
   opacity: 0.2,
 });
 
 export const createLaneDim = (column) => {
-  const mesh = new three.Mesh(LANE_DIM_GEOMETRY, LANE_DIM_MATERIAL);
+  const mesh = new three2.Mesh(LANE_DIM_GEOMETRY, LANE_DIM_MATERIAL);
   mesh.position.set(
     (LANE_DIM_SCALE_X + LANE_DIM_SPACE_BETWEEN) * column,
     LANE_DIM_POSITION_Y,
@@ -181,19 +204,19 @@ export const createLaneDim = (column) => {
 export const RAIL_DIM_SCALE_X = RAIL_SCALE_X_BASE;
 export const RAIL_DIM_SCALE_Y = RAIL_SCALE_Y;
 export const RAIL_DIM_SCALE_Z = RAIL_SCALE_Z;
-export const RAIL_DIM_GEOMETRY = new three.BoxGeometry(
+export const RAIL_DIM_GEOMETRY = new three2.BoxGeometry(
   RAIL_SCALE_X_BASE,
   RAIL_SCALE_Y,
   RAIL_SCALE_Z
 );
-export const RAIL_DIM_MATERIAL = new three.MeshBasicMaterial({
+export const RAIL_DIM_MATERIAL = new three2.MeshBasicMaterial({
   color: 0xffffff,
   transparent: true,
   opacity: 0.2,
 });
 
 export const createRailDim = (column) => {
-  const mesh = new three.Mesh(RAIL_DIM_GEOMETRY, RAIL_DIM_MATERIAL);
+  const mesh = new three2.Mesh(RAIL_DIM_GEOMETRY, RAIL_DIM_MATERIAL);
   mesh.rotation.set(0.0, 0.0, RAIL_ROTATION * column);
   mesh.position.set(
     (HIGHWAY_SCALE_X / 2 + RAIL_OFFSET - 0.0002) * column,
@@ -205,17 +228,17 @@ export const createRailDim = (column) => {
 };
 
 // middle is just identity matrix - no rotation, no translation, no scale
-export const MIDDLE_M4 = new three.Matrix4();
-export const MIDDLE_POSITION = new three.Vector3();
-export const MIDDLE_QUATERNION = new three.Quaternion();
-export const MIDDLE_SCALE = new three.Vector3();
+export const MIDDLE_M4 = new three2.Matrix4();
+export const MIDDLE_POSITION = new three2.Vector3();
+export const MIDDLE_QUATERNION = new three2.Quaternion();
+export const MIDDLE_SCALE = new three2.Vector3();
 MIDDLE_M4.decompose(MIDDLE_POSITION, MIDDLE_QUATERNION, MIDDLE_SCALE);
 
 // other planes
 export const LEFT_SIDE_M4 = (() => {
-  const finalM4 = new three.Matrix4();
-  const rotationM4 = new three.Matrix4().makeRotationZ(-RAIL_ROTATION);
-  const translationM4 = new three.Matrix4().makeTranslation(
+  const finalM4 = new three2.Matrix4();
+  const rotationM4 = new three2.Matrix4().makeRotationZ(-RAIL_ROTATION);
+  const translationM4 = new three2.Matrix4().makeTranslation(
     // start from the position
     HIGHWAY_POSITION_X -
       // subtract half the scale to move it to the edge
@@ -236,9 +259,9 @@ export const LEFT_SIDE_M4 = (() => {
   return finalM4;
 })();
 
-export const LEFT_SIDE_POSITION = new three.Vector3();
-export const LEFT_SIDE_QUATERNION = new three.Quaternion();
-export const LEFT_SIDE_SCALE = new three.Vector3();
+export const LEFT_SIDE_POSITION = new three2.Vector3();
+export const LEFT_SIDE_QUATERNION = new three2.Quaternion();
+export const LEFT_SIDE_SCALE = new three2.Vector3();
 LEFT_SIDE_M4.decompose(
   LEFT_SIDE_POSITION,
   LEFT_SIDE_QUATERNION,
@@ -246,9 +269,9 @@ LEFT_SIDE_M4.decompose(
 );
 
 export const RIGHT_SIDE_M4 = (() => {
-  const finalM4 = new three.Matrix4();
-  const rotationM4 = new three.Matrix4().makeRotationZ(RAIL_ROTATION);
-  const translationM4 = new three.Matrix4().makeTranslation(
+  const finalM4 = new three2.Matrix4();
+  const rotationM4 = new three2.Matrix4().makeRotationZ(RAIL_ROTATION);
+  const translationM4 = new three2.Matrix4().makeTranslation(
     // start from the position
     HIGHWAY_POSITION_X +
       // add half the scale to move it to the edge
@@ -269,9 +292,9 @@ export const RIGHT_SIDE_M4 = (() => {
   return finalM4;
 })();
 
-export const RIGHT_SIDE_POSITION = new three.Vector3();
-export const RIGHT_SIDE_QUATERNION = new three.Quaternion();
-export const RIGHT_SIDE_SCALE = new three.Vector3();
+export const RIGHT_SIDE_POSITION = new three2.Vector3();
+export const RIGHT_SIDE_QUATERNION = new three2.Quaternion();
+export const RIGHT_SIDE_SCALE = new three2.Vector3();
 RIGHT_SIDE_M4.decompose(
   RIGHT_SIDE_POSITION,
   RIGHT_SIDE_QUATERNION,
@@ -279,9 +302,9 @@ RIGHT_SIDE_M4.decompose(
 );
 
 export const LEFT_ON_DECK_M4 = (() => {
-  const finalM4 = new three.Matrix4();
-  const rotationM4 = new three.Matrix4().makeRotationZ(-RAIL_ROTATION);
-  const translationM4 = new three.Matrix4().makeTranslation(
+  const finalM4 = new three2.Matrix4();
+  const rotationM4 = new three2.Matrix4().makeRotationZ(-RAIL_ROTATION);
+  const translationM4 = new three2.Matrix4().makeTranslation(
     // start from the position
     HIGHWAY_POSITION_X -
       // subtract half the scale to move it to the edge
@@ -309,9 +332,9 @@ export const LEFT_ON_DECK_M4 = (() => {
   finalM4.multiplyMatrices(translationM4, rotationM4);
   return finalM4;
 })();
-export const LEFT_ON_DECK_POSITION = new three.Vector3();
-export const LEFT_ON_DECK_QUATERNION = new three.Quaternion();
-export const LEFT_ON_DECK_SCALE = new three.Vector3();
+export const LEFT_ON_DECK_POSITION = new three2.Vector3();
+export const LEFT_ON_DECK_QUATERNION = new three2.Quaternion();
+export const LEFT_ON_DECK_SCALE = new three2.Vector3();
 LEFT_ON_DECK_M4.decompose(
   LEFT_ON_DECK_POSITION,
   LEFT_ON_DECK_QUATERNION,
@@ -319,9 +342,9 @@ LEFT_ON_DECK_M4.decompose(
 );
 
 export const RIGHT_ON_DECK_M4 = (() => {
-  const finalM4 = new three.Matrix4();
-  const rotationM4 = new three.Matrix4().makeRotationZ(RAIL_ROTATION);
-  const translationM4 = new three.Matrix4().makeTranslation(
+  const finalM4 = new three2.Matrix4();
+  const rotationM4 = new three2.Matrix4().makeRotationZ(RAIL_ROTATION);
+  const translationM4 = new three2.Matrix4().makeTranslation(
     // start from the position
     HIGHWAY_POSITION_X +
       // subtract half the scale to move it to the edge
@@ -349,9 +372,9 @@ export const RIGHT_ON_DECK_M4 = (() => {
   finalM4.multiplyMatrices(translationM4, rotationM4);
   return finalM4;
 })();
-export const RIGHT_ON_DECK_POSITION = new three.Vector3();
-export const RIGHT_ON_DECK_QUATERNION = new three.Quaternion();
-export const RIGHT_ON_DECK_SCALE = new three.Vector3();
+export const RIGHT_ON_DECK_POSITION = new three2.Vector3();
+export const RIGHT_ON_DECK_QUATERNION = new three2.Quaternion();
+export const RIGHT_ON_DECK_SCALE = new three2.Vector3();
 RIGHT_ON_DECK_M4.decompose(
   RIGHT_ON_DECK_POSITION,
   RIGHT_ON_DECK_QUATERNION,
@@ -359,7 +382,7 @@ RIGHT_ON_DECK_M4.decompose(
 );
 
 export const OFF_SCREEN_M4 = (() => {
-  const finalM4 = new three.Matrix4().makeTranslation(100.0, 100.0, 100.0);
+  const finalM4 = new three2.Matrix4().makeTranslation(100.0, 100.0, 100.0);
   return finalM4;
 })();
 

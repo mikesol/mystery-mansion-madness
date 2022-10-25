@@ -1,6 +1,11 @@
 "use strict";
 
-import * as three from "three";
+import { BoxGeometry } from "three/src/geometries/BoxGeometry";
+import { RawShaderMaterial } from "three/src/materials/RawShaderMaterial";
+import { InstancedMesh } from "three/src/objects/InstancedMesh";
+import { Matrix4 } from "three/src/math/Matrix4";
+import { Vector3 } from "three/src/math/Vector3";
+import { InstancedBufferAttribute } from "three/src/core/InstancedBufferAttribute";
 import { JUDGEMENT_CONSTANTS } from "../judgement/judgement.js";
 import { CHART_LENGTH } from "./halloween0.js";
 import {
@@ -10,6 +15,15 @@ import {
   RAIL_SCALE_X_BASE,
   RAIL_SCALE_Y,
 } from "./plane.js";
+
+const three2 = {
+  BoxGeometry,
+  RawShaderMaterial,
+  InstancedMesh,
+  Matrix4,
+  Vector3,
+  InstancedBufferAttribute,
+};
 
 // get rid of the window after judgement
 export const PENALTY_WINDOW_AFTER_JUDGEMENT = 0.0;
@@ -21,13 +35,13 @@ export const LANE_NOTE_POSITION_Y = 0.001;
 export const LANE_NOTE_POSITION_Z = -4.8;
 export const LANE_NOTE_SPACE_BETWEEN = HIGHWAY_SCALE_X_PADDING / 5;
 const LANE_NOTE_GEOMETRY = () =>
-  new three.BoxGeometry(
+  new three2.BoxGeometry(
     LANE_NOTE_SCALE_X,
     LANE_NOTE_SCALE_Y,
     LANE_NOTE_SCALE_Z
   );
 const LANE_NOTE_MATERIAL = () =>
-  new three.RawShaderMaterial({
+  new three2.RawShaderMaterial({
     uniforms: {
       uTime: { value: 0.0 },
     },
@@ -109,7 +123,7 @@ export const createLaneNotes = ({ notes: $notes, groupId }) => {
   const notes = [...$notes];
   const geometry = LANE_NOTE_GEOMETRY();
   const material = LANE_NOTE_MATERIAL();
-  const laneNoteMesh = new three.InstancedMesh(
+  const laneNoteMesh = new three2.InstancedMesh(
     geometry,
     material,
     notes.length
@@ -119,9 +133,9 @@ export const createLaneNotes = ({ notes: $notes, groupId }) => {
   const timing = new Float32Array(notes.length);
   for (var i = 0; i < notes.length; i++) {
     const note = notes[i];
-    const noteMatrix = new three.Matrix4();
+    const noteMatrix = new three2.Matrix4();
     noteMatrix.setPosition(
-      new three.Vector3(
+      new three2.Vector3(
         (LANE_NOTE_SCALE_X + LANE_NOTE_SPACE_BETWEEN) * note.column,
         LANE_NOTE_POSITION_Y,
         LANE_NOTE_POSITION_Z
@@ -156,7 +170,7 @@ export const createLaneNotes = ({ notes: $notes, groupId }) => {
    */
   geometry.setAttribute(
     "aTiming",
-    new three.InstancedBufferAttribute(timing, 1)
+    new three2.InstancedBufferAttribute(timing, 1)
   );
   return { laneNoteMesh, laneNoteInfo, laneNoteTable };
 };
@@ -167,13 +181,13 @@ export const RAIL_NOTE_SCALE_Z = LANE_NOTE_SCALE_Z;
 export const RAIL_NOTE_POSITION_Z = LANE_NOTE_POSITION_Z;
 export const RAIL_NOTE_ROTATION_Z = (45 * Math.PI) / 180;
 const RAIL_NOTE_GEOMETRY = () =>
-  new three.BoxGeometry(
+  new three2.BoxGeometry(
     RAIL_NOTE_SCALE_X,
     RAIL_NOTE_SCALE_Y,
     RAIL_NOTE_SCALE_Z
   );
 const RAIL_NOTE_MATERIAL = () =>
-  new three.RawShaderMaterial({
+  new three2.RawShaderMaterial({
     uniforms: {
       uTime: { value: 0.0 },
     },
@@ -214,13 +228,13 @@ export const RAIL_COLUMN = {
   RIGHT: 1,
 };
 
-const RAIL_NOTE_MATRIX = new three.Matrix4();
+const RAIL_NOTE_MATRIX = new three2.Matrix4();
 RAIL_NOTE_MATRIX.setPosition(0.0001, 0.0001, RAIL_NOTE_POSITION_Z);
 export const createRailNotes = ({ notes: $notes, groupId }) => {
   const notes = [...$notes];
   const geometry = RAIL_NOTE_GEOMETRY();
   const material = RAIL_NOTE_MATERIAL();
-  const railNoteMesh = new three.InstancedMesh(
+  const railNoteMesh = new three2.InstancedMesh(
     geometry,
     material,
     notes.length
@@ -247,7 +261,7 @@ export const createRailNotes = ({ notes: $notes, groupId }) => {
   });
   geometry.setAttribute(
     "aTiming",
-    new three.InstancedBufferAttribute(timing, 1)
+    new three2.InstancedBufferAttribute(timing, 1)
   );
   return { railNoteMesh, railNoteInfo, railNoteTable };
 };
