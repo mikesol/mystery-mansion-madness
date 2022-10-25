@@ -19,3 +19,4 @@ assets/halloween3.mp3 filter=lfs diff=lfs merge=lfs -text
 assets/perfect.png filter=lfs diff=lfs merge=lfs -text
 public/favicon.ico filter=lfs diff=lfs merge=lfs -text
 assets/mansion.webp filter=lfs diff=lfs merge=lfs -text
+assets/storm3.mp4 filter=lfs diff=lfs merge=lfs -text
