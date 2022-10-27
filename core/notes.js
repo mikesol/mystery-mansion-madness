@@ -1,11 +1,7 @@
 "use strict";
 
-import { BoxGeometry } from "three/src/geometries/BoxGeometry";
-import { RawShaderMaterial } from "three/src/materials/RawShaderMaterial";
-import { InstancedMesh } from "three/src/objects/InstancedMesh";
-import { Matrix4 } from "three/src/math/Matrix4";
-import { Vector3 } from "three/src/math/Vector3";
-import { InstancedBufferAttribute } from "three/src/core/InstancedBufferAttribute";
+import { Box, Program, Mesh, Mat4, Vec3 } from "ogl";
+import { INSTANCED_FRAGMENT, INSTANCED_VERTEX } from "../gl/instanced.js";
 import { JUDGEMENT_CONSTANTS } from "../judgement/judgement.js";
 import { CHART_LENGTH } from "./halloween0.js";
 import {
@@ -16,15 +12,6 @@ import {
   RAIL_SCALE_Y,
 } from "./plane.js";
 
-const three2 = {
-  BoxGeometry,
-  RawShaderMaterial,
-  InstancedMesh,
-  Matrix4,
-  Vector3,
-  InstancedBufferAttribute,
-};
-
 // get rid of the window after judgement
 export const PENALTY_WINDOW_AFTER_JUDGEMENT = 0.0;
 export const TABLE_DENSITY_PER_SECOND = 10;
@@ -34,48 +21,23 @@ export const LANE_NOTE_SCALE_Z = 0.2;
 export const LANE_NOTE_POSITION_Y = 0.001;
 export const LANE_NOTE_POSITION_Z = -4.8;
 export const LANE_NOTE_SPACE_BETWEEN = HIGHWAY_SCALE_X_PADDING / 5;
-const LANE_NOTE_GEOMETRY = () =>
-  new three2.BoxGeometry(
-    LANE_NOTE_SCALE_X,
-    LANE_NOTE_SCALE_Y,
-    LANE_NOTE_SCALE_Z
-  );
-const LANE_NOTE_MATERIAL = () =>
-  new three2.RawShaderMaterial({
+const LANE_NOTE_GEOMETRY = ({ gl }) =>
+  new Box(gl, {
+    width: LANE_NOTE_SCALE_X,
+    height: LANE_NOTE_SCALE_Y,
+    depth: LANE_NOTE_SCALE_Z,
+  });
+const LANE_NOTE_MATERIAL = ({ gl }) =>
+  new Program(gl, {
     uniforms: {
       uTime: { value: 0.0 },
+      uR: { value: 0.1843 }, // 0.1843, 0.9686, 0.8392, 1.0
+      uG: { value: 0.9686 },
+      uB: { value: 0.8392 },
+      uA: { value: 1.0 },
     },
-
-    vertexShader: `
-uniform mat4 projectionMatrix;
-uniform mat4 viewMatrix;
-uniform mat4 modelMatrix;
-uniform float uTime;
-
-attribute vec3 position;
-attribute mat4 instanceMatrix;
-attribute float aTiming;
-
-void main()
-{
-    float myZ = uTime < (aTiming - 1.0) ? 100.0 : uTime > (aTiming + 1.0) ? 100.0 : ((4.8 * (uTime - (aTiming - 1.0))));
-    mat4 newMatrix;
-    newMatrix[0][0] = 1.0;
-    newMatrix[1][1] = 1.0;
-    newMatrix[2][2] = 1.0;
-    newMatrix[3][3] = 1.0;
-    newMatrix[3][2] = myZ;
-    gl_Position = projectionMatrix * viewMatrix * modelMatrix * instanceMatrix * newMatrix * vec4(position, 1.0);
-}`,
-
-    fragmentShader: `
-precision mediump float;
-
-void main()
-{
-    gl_FragColor = vec4(0.1843, 0.9686, 0.8392, 1.0);
-}
-`,
+    vertex: INSTANCED_VERTEX,
+    fragment: INSTANCED_FRAGMENT,
   });
 
 export const LANE_COLUMN = {
@@ -119,23 +81,20 @@ const fillTable = ({ notes, columnToIndex, arrSize }) => {
   return noteTable;
 };
 
-export const createLaneNotes = ({ notes: $notes, groupId }) => {
+export const createLaneNotes = ({ gl, notes: $notes, groupId }) => {
   const notes = [...$notes];
-  const geometry = LANE_NOTE_GEOMETRY();
-  const material = LANE_NOTE_MATERIAL();
-  const laneNoteMesh = new three2.InstancedMesh(
-    geometry,
-    material,
-    notes.length
-  );
+  const geometry = LANE_NOTE_GEOMETRY({ gl });
+  const material = LANE_NOTE_MATERIAL({ gl });
+  const laneNoteMesh = new Mesh(gl, { geometry, program: material });
 
   const laneNoteInfo = [];
   const timing = new Float32Array(notes.length);
+  const imx = new Float32Array(notes.length * 16);
   for (var i = 0; i < notes.length; i++) {
     const note = notes[i];
-    const noteMatrix = new three2.Matrix4();
+    const noteMatrix = new Mat4();
     noteMatrix.setPosition(
-      new three2.Vector3(
+      new Vec3(
         (LANE_NOTE_SCALE_X + LANE_NOTE_SPACE_BETWEEN) * note.column,
         LANE_NOTE_POSITION_Y,
         LANE_NOTE_POSITION_Z
@@ -143,7 +102,11 @@ export const createLaneNotes = ({ notes: $notes, groupId }) => {
     );
 
     timing[i] = note.timing;
-    laneNoteMesh.setMatrixAt(i, noteMatrix);
+    const nm = noteMatrix.toArray();
+    const offset = i * 16;
+    for (var j = offset, k = 0; j < offset + 16; j++, k++) {
+      imx[offset] = nm[k];
+    }
     laneNoteInfo.push({
       timing: note.timing,
       groupId,
@@ -168,10 +131,8 @@ export const createLaneNotes = ({ notes: $notes, groupId }) => {
   /**
    * ;
    */
-  geometry.setAttribute(
-    "aTiming",
-    new three2.InstancedBufferAttribute(timing, 1)
-  );
+  geometry.addAttribute("aTiming", { instanced: 1, size: 1, data: timing });
+  geometry.addAttribute("instanceMatrix", { instanced: 1, size: 16, data: imx });
   return { laneNoteMesh, laneNoteInfo, laneNoteTable };
 };
 
@@ -180,72 +141,55 @@ export const RAIL_NOTE_SCALE_Y = RAIL_SCALE_Y;
 export const RAIL_NOTE_SCALE_Z = LANE_NOTE_SCALE_Z;
 export const RAIL_NOTE_POSITION_Z = LANE_NOTE_POSITION_Z;
 export const RAIL_NOTE_ROTATION_Z = (45 * Math.PI) / 180;
-const RAIL_NOTE_GEOMETRY = () =>
-  new three2.BoxGeometry(
-    RAIL_NOTE_SCALE_X,
-    RAIL_NOTE_SCALE_Y,
-    RAIL_NOTE_SCALE_Z
-  );
-const RAIL_NOTE_MATERIAL = () =>
-  new three2.RawShaderMaterial({
+const RAIL_NOTE_GEOMETRY = ({ gl }) =>
+  new Box(gl, {
+    width: RAIL_NOTE_SCALE_X,
+    height: RAIL_NOTE_SCALE_Y,
+    depth: RAIL_NOTE_SCALE_Z,
+  });
+const RAIL_NOTE_MATERIAL = ({ gl }) =>
+  new Program(gl, {
     uniforms: {
       uTime: { value: 0.0 },
+      uR: { value: 0.9882 }, // 0.9882, 0.5725, 0.1569
+      uG: { value: 0.5725 },
+      uB: { value: 0.1569 },
+      uA: { value: 1.0 },
     },
 
-    vertexShader: `
-uniform mat4 projectionMatrix;
-uniform mat4 viewMatrix;
-uniform mat4 modelMatrix;
-uniform float uTime;
-
-attribute vec3 position;
-attribute mat4 instanceMatrix;
-attribute float aTiming;
-
-void main()
-{
-    float myZ = uTime < (aTiming - 1.0) ? 100.0 : uTime > (aTiming + 1.0) ? 100.0 : ((4.8 * (uTime - (aTiming - 1.0))));
-    mat4 newMatrix;
-    newMatrix[0][0] = 1.0;
-    newMatrix[1][1] = 1.0;
-    newMatrix[2][2] = 1.0;
-    newMatrix[3][3] = 1.0;
-    newMatrix[3][2] = myZ;
-    gl_Position = projectionMatrix * viewMatrix * modelMatrix * instanceMatrix * newMatrix * vec4(position, 1.0);
-}`,
-
-    fragmentShader: `
-precision mediump float;
-
-void main()
-{
-    gl_FragColor = vec4(0.9882, 0.5725, 0.1569, 1.0);
-}
-`,
+    vertex: INSTANCED_VERTEX,
+    fragment: INSTANCED_FRAGMENT,
   });
 export const RAIL_COLUMN = {
   LEFT: -1,
   RIGHT: 1,
 };
 
-const RAIL_NOTE_MATRIX = new three2.Matrix4();
+const RAIL_NOTE_MATRIX = new Mat4();
 RAIL_NOTE_MATRIX.setPosition(0.0001, 0.0001, RAIL_NOTE_POSITION_Z);
-export const createRailNotes = ({ notes: $notes, groupId }) => {
+export const createRailNotes = ({ gl, notes: $notes, groupId }) => {
   const notes = [...$notes];
-  const geometry = RAIL_NOTE_GEOMETRY();
-  const material = RAIL_NOTE_MATERIAL();
-  const railNoteMesh = new three2.InstancedMesh(
+  const geometry = RAIL_NOTE_GEOMETRY({ gl });
+  const material = RAIL_NOTE_MATERIAL({ gl });
+  const railNoteMesh = new Mesh(gl, {
     geometry,
-    material,
-    notes.length
-  );
+    program: material,
+  });
+  const imx = new Float32Array(notes.length * 16);
   const railNoteInfo = [];
   const entries = [...notes.entries()];
   const timing = new Float32Array(entries.length);
   for (var i = 0; i < entries.length; i++) {
-    const [index, note] = entries[i];
+    const [note] = entries[i];
     timing[i] = note.timing;
-    railNoteMesh.setMatrixAt(index, RAIL_NOTE_MATRIX);
+    //
+    const nm = RAIL_NOTE_MATRIX.toArray();
+    const offset = i * 16;
+    for (var j = offset, k = 0; j < offset + 16; j++, k++) {
+      imx[offset] = nm[k];
+    }
+    //
+
     railNoteInfo.push({
       timing: note.timing,
       hasHit: false,
@@ -259,9 +203,7 @@ export const createRailNotes = ({ notes: $notes, groupId }) => {
     arrSize: 1,
     columnToIndex: () => 0,
   });
-  geometry.setAttribute(
-    "aTiming",
-    new three2.InstancedBufferAttribute(timing, 1)
-  );
+  geometry.addAttribute("aTiming", { instanced:1, size: 1, data: timing });
+  geometry.addAttribute("instanceMatrix", { instanced:1, size: 16, data: imx });
   return { railNoteMesh, railNoteInfo, railNoteTable };
 };

@@ -2,13 +2,8 @@
 
 import { AndroidFullScreen } from "@awesome-cordova-plugins/android-full-screen";
 import "flowbite";
-import { Group } from "three/src/objects/Group";
-import { TextureLoader } from "three/src/loaders/TextureLoader";
-import { Raycaster } from "three/src/core/Raycaster";
-import { WebGLRenderer } from "three/src/renderers/WebGLRenderer";
-import { Scene } from "three/src/scenes/Scene";
-import { Euler } from "three/src/math/Euler";
-import { Vector2 } from "three/src/math/Vector2";
+import { Transform, Euler, Vec2, Renderer, Raycast, TextureLoader } from "ogl";
+
 import { GROUPS } from "./core/groups";
 import { createCamera } from "./camera.js";
 import * as HALLOWEEN from "./core/halloween0.js";
@@ -91,8 +86,6 @@ import {
 } from "./firebase/firestore";
 import { logEvent } from "firebase/analytics";
 import { analytics } from "./firebase/init";
-
-const three2 = { Group, Euler, TextureLoader, WebGLRenderer, Scene ,Vector2, Raycaster};
 
 // how far in the back we look to disqualify something as a miss
 // change this is the TABLE_DENSITY_FACTOR is no longer 10
@@ -178,7 +171,7 @@ const laneMod = (v) => (x) => {
   }
   return o;
 };
-const makeGroup = ({ scene, side, groupId, multtxt }) => {
+const makeGroup = ({ gl, scene, side, groupId, multtxt }) => {
   // thin stuff out
   const laneNotes = (
     groupId == 0 || groupId == 1 || groupId === 7
@@ -200,14 +193,15 @@ const makeGroup = ({ scene, side, groupId, multtxt }) => {
         })
   ).map(laneMod(groupId));
   const { laneNoteMesh, laneNoteInfo, laneNoteTable } = createLaneNotes({
+    gl,
     notes: laneNotes,
     groupId,
   });
 
-  const sideGroup = new three2.Group();
-  const railGroup = new three2.Group();
+  const sideGroup = new Transform();
+  const railGroup = new Transform();
 
-  sideGroup.add(laneNoteMesh);
+  sideGroup.addChild(laneNoteMesh);
 
   const quarterIs = 60.0 / HALLOWEEN.TEMPO;
   const eightBeatsAre = quarterIs * 8.0;
@@ -234,41 +228,39 @@ const makeGroup = ({ scene, side, groupId, multtxt }) => {
         })
   ).filter(groupId % 2 === 0 ? test1 : test2);
   const { railNoteMesh, railNoteInfo, railNoteTable } = createRailNotes({
+    gl,
     notes: railNotes,
     groupId,
   });
-  railGroup.add(railNoteMesh);
+  railGroup.addChild(railNoteMesh);
 
-  const highway = createHighway();
+  const highway = createHighway({ gl });
   if (side !== SIDES.CENTER) {
-    highway.material.opacity = SIDE_LANE_OPACITY;
+    highway.program.uniforms.uA.value = SIDE_LANE_OPACITY;
   }
-  sideGroup.add(highway);
-  const multiplier = createMultiplier({ multtxt });
-  sideGroup.add(multiplier);
-  const judge = createJudge();
-  sideGroup.add(judge);
-  const rails = createRails({ side });
-  railGroup.add(rails);
-  const railJudge = createRailJudge({ side });
-  railGroup.add(railJudge);
+  sideGroup.addChild(highway);
+  const multiplier = createMultiplier({ gl, multtxt });
+  sideGroup.addChild(multiplier);
+  const judge = createJudge({ gl });
+  sideGroup.addChild(judge);
+  const rails = createRails({ gl, side });
+  railGroup.addChild(rails);
+  const railJudge = createRailJudge({ gl, side });
+  railGroup.addChild(railJudge);
 
   const dims = [
-    createLaneDim(LANE_COLUMN.FAR_LEFT),
-    createLaneDim(LANE_COLUMN.NEAR_LEFT),
-    createLaneDim(LANE_COLUMN.NEAR_RIGHT),
-    createLaneDim(LANE_COLUMN.FAR_RIGHT),
-    createRailDim(RAIL_COLUMN.LEFT),
-    createRailDim(RAIL_COLUMN.RIGHT),
+    createLaneDim({ gl, column: LANE_COLUMN.FAR_LEFT }),
+    createLaneDim({ gl, column: LANE_COLUMN.NEAR_LEFT }),
+    createLaneDim({ gl, column: LANE_COLUMN.NEAR_RIGHT }),
+    createLaneDim({ gl, column: LANE_COLUMN.FAR_RIGHT }),
+    createRailDim({ gl, column: RAIL_COLUMN.LEFT }),
+    createRailDim({ gl, column: RAIL_COLUMN.RIGHT }),
   ];
   for (const laneDim of dims) {
-    sideGroup.add(laneDim);
+    sideGroup.addChild(laneDim);
   }
-  if (side === SIDES.LEFT_SIDE) {
-    sideGroup.applyMatrix4(LEFT_SIDE_M4);
-  } else if (side === SIDES.RIGHT_SIDE) {
-    sideGroup.applyMatrix4(RIGHT_SIDE_M4);
-  }
+  sideGroup.matrix = side === SIDES.LEFT_SIDE ? LEFT_SIDE_M4 : RIGHT_SIDE_M4;
+  sideGroup.worldMatrixNeedsUpdate = true;
   // nix the visibility if it is not one of the three primary lanes
   if (
     !(
@@ -280,13 +272,13 @@ const makeGroup = ({ scene, side, groupId, multtxt }) => {
     sideGroup.visible = false;
   }
   if (side === SIDES.CENTER) {
-    railGroup.setRotationFromEuler(new three2.Euler(0.0, 0.0, -RAIL_ROTATION));
+    railGroup.rotation.set(new Euler(0.0, 0.0, -RAIL_ROTATION));
   }
   railGroup.position.copy(
     side === SIDES.CENTER ? RAIL_CENTER_POSITION : RAIL_SIDE_POSITION
   );
-  sideGroup.add(railGroup);
-  scene.add(sideGroup);
+  sideGroup.addChild(railGroup);
+  scene.addChild(sideGroup);
   return {
     sideGroup,
     railGroup,
@@ -414,71 +406,85 @@ const main = async () => {
     stormVideo.classList.remove("opacity-0");
     stormVideo.classList.add(FULL_VIDEO_OPACITY);
     // textures
-    const loader = new three2.TextureLoader();
-    const [t1x, t2x, t3x, t5x, t8x] = await Promise.all([
-      loader.loadAsync(oneX),
-      loader.loadAsync(twoX),
-      loader.loadAsync(threeX),
-      loader.loadAsync(fiveX),
-      loader.loadAsync(eightX),
-    ]);
-
     // canvas
     const canvas = document.getElementById("joyride-canvas");
     // renderer
-    const renderer = new three2.WebGLRenderer({ canvas, alpha: true });
+    const renderer = new Renderer({
+      dpr: Math.min(window.devicePixelRatio, 2),
+      canvas,
+      alpha: true,
+    });
+    const gl = renderer.gl;
+    const [t1x, t2x, t3x, t5x, t8x] = [
+      TextureLoader.load(gl, { src: oneX }),
+      TextureLoader.load(gl, { src: twoX }),
+      TextureLoader.load(gl, { src: threeX }),
+      TextureLoader.load(gl, { src: fiveX }),
+      TextureLoader.load(gl, { src: eightX }),
+    ];
+
     // camera
-    const camera = createCamera(canvas.clientWidth / canvas.clientHeight);
+    const camera = createCamera(gl, {
+      aspect: canvas.clientWidth / canvas.clientHeight,
+    });
     //raycaster
-    const raycaster = new three2.Raycaster();
+    const raycaster = new Raycast(gl);
 
     // scene
-    const scene = new three2.Scene();
+    const scene = new Transform();
     const pm1 = player - 1;
     const ALL_GROUPS = [
       makeGroup({
+        gl,
         scene,
         multtxt: t1x,
         side: SIDES_CLOCKWISE[negMod(0 - pm1, 8)],
         groupId: GROUPS.LOWEST,
       }),
       makeGroup({
+        gl,
         scene,
         multtxt: t2x,
         side: SIDES_CLOCKWISE[negMod(1 - pm1, 8)],
         groupId: GROUPS.LOW_LEFT,
       }),
       makeGroup({
+        gl,
         scene,
         multtxt: t3x,
         side: SIDES_CLOCKWISE[negMod(2 - pm1, 8)],
         groupId: GROUPS.MID_LEFT,
       }),
       makeGroup({
+        gl,
         scene,
         multtxt: t5x,
         side: SIDES_CLOCKWISE[negMod(3 - pm1, 8)],
         groupId: GROUPS.HIGH_LEFT,
       }),
       makeGroup({
+        gl,
         scene,
         multtxt: t8x,
         side: SIDES_CLOCKWISE[negMod(4 - pm1, 8)],
         groupId: GROUPS.HIGHEST,
       }),
       makeGroup({
+        gl,
         scene,
         multtxt: t5x,
         side: SIDES_CLOCKWISE[negMod(5 - pm1, 8)],
         groupId: GROUPS.HIGH_RIGHT,
       }),
       makeGroup({
+        gl,
         scene,
         multtxt: t3x,
         side: SIDES_CLOCKWISE[negMod(6 - pm1, 8)],
         groupId: GROUPS.MID_RIGHT,
       }),
       makeGroup({
+        gl,
         scene,
         multtxt: t2x,
         side: SIDES_CLOCKWISE[negMod(7 - pm1, 8)],
@@ -536,16 +542,16 @@ const main = async () => {
     //
 
     const touchAreas = [
-      createLaneTouchArea(LANE_TOUCH_AREA_COLUMN.FAR_LEFT),
-      createLaneTouchArea(LANE_TOUCH_AREA_COLUMN.NEAR_LEFT),
-      createLaneTouchArea(LANE_TOUCH_AREA_COLUMN.NEAR_RIGHT),
-      createLaneTouchArea(LANE_TOUCH_AREA_COLUMN.FAR_RIGHT),
-      createRailTouchArea(RAIL_TOUCH_AREA_COLUMN.LEFT),
-      createRailTouchArea(RAIL_TOUCH_AREA_COLUMN.RIGHT),
+      createLaneTouchArea({ gl, column: LANE_TOUCH_AREA_COLUMN.FAR_LEFT }),
+      createLaneTouchArea({ gl, column: LANE_TOUCH_AREA_COLUMN.NEAR_LEFT }),
+      createLaneTouchArea({ gl, column: LANE_TOUCH_AREA_COLUMN.NEAR_RIGHT }),
+      createLaneTouchArea({ gl, column: LANE_TOUCH_AREA_COLUMN.FAR_RIGHT }),
+      createRailTouchArea({ gl, column: RAIL_TOUCH_AREA_COLUMN.LEFT }),
+      createRailTouchArea({ gl, column: RAIL_TOUCH_AREA_COLUMN.RIGHT }),
     ];
 
     for (const touchArea of touchAreas) {
-      scene.add(touchArea);
+      scene.addChild(touchArea);
     }
     introScreen.classList.add("hidden");
     scoreGrid.classList.remove("hidden");
@@ -553,21 +559,13 @@ const main = async () => {
     const comboSpan = document.getElementById("combo-text");
     const realScore = document.getElementById("real-score");
 
-    const tryResizeRendererToDisplay = () => {
-      const canvas = renderer.domElement;
-      const pixelRatio = window.devicePixelRatio;
-      const width = (canvas.clientWidth * pixelRatio) | 0;
-      const height = (canvas.clientHeight * pixelRatio) | 0;
-      const needResize = canvas.width !== width || canvas.height !== height;
-      if (needResize) {
-        renderer.setSize(width, height, false);
-        const canvas = renderer.domElement;
-        camera.aspect = canvas.clientWidth / canvas.clientHeight;
-        camera.updateProjectionMatrix();
-      }
-    };
 
-    const pointerBuffer = new three2.Vector2();
+    const pointerBuffer = new Vec2();
+
+    // size setting
+    // todo: move elsewhere?
+    renderer.setSize(canvas.clientWidth, canvas.clientHeight);
+    camera.aspect = canvas.clientWidth/canvas.clientHeight;
 
     const doShift = (dir) => {
       const previousGroupIndex = currentGroupIndex;
@@ -580,13 +578,17 @@ const main = async () => {
       if (dir === SHIFT_INSTRUCTION.GO_LEFT) {
         // do the non-animating shifts
         //// right on deck goes to not visible
-        ALL_GROUPS[negMod(previousGroupIndex - 2, 8)].sideGroup.applyMatrix4(
-          OFF_SCREEN_M4
-        );
+        ALL_GROUPS[negMod(previousGroupIndex - 2, 8)].sideGroup.matrix =
+          OFF_SCREEN_M4;
+        ALL_GROUPS[
+          negMod(previousGroupIndex - 2, 8)
+        ].sideGroup.worldMatrixNeedsUpdate = true;
         //// left-most not visible goes to left on-deck
-        ALL_GROUPS[negMod(previousGroupIndex + 3, 8)].sideGroup.applyMatrix4(
-          LEFT_ON_DECK_M4
-        );
+        ALL_GROUPS[negMod(previousGroupIndex + 3, 8)].sideGroup.matrix =
+          LEFT_ON_DECK_M4;
+        ALL_GROUPS[
+          negMod(previousGroupIndex + 3, 8)
+        ].sideGroup.worldMatrixNeedsUpdate = true;
         //// set the visibility of left-on-deck to true
         ALL_GROUPS[negMod(previousGroupIndex + 2, 8)].sideGroup.visible = true;
         //// set the animation targets
@@ -641,13 +643,17 @@ const main = async () => {
       } else {
         // do the non-animating shifts
         //// left on deck goes to not visible
-        ALL_GROUPS[negMod(previousGroupIndex + 2, 8)].sideGroup.applyMatrix4(
-          OFF_SCREEN_M4
-        );
+        ALL_GROUPS[negMod(previousGroupIndex + 2, 8)].sideGroup.matrix =
+          OFF_SCREEN_M4;
+        ALL_GROUPS[
+          negMod(previousGroupIndex + 2, 8)
+        ].sideGroup.worldMatrixNeedsUpdate = true;
         //// right-most not visible goes to right on-deck
-        ALL_GROUPS[negMod(previousGroupIndex - 3, 8)].sideGroup.applyMatrix4(
-          RIGHT_ON_DECK_M4
-        );
+        ALL_GROUPS[negMod(previousGroupIndex - 3, 8)].sideGroup.matrix =
+          RIGHT_ON_DECK_M4;
+        ALL_GROUPS[
+          negMod(previousGroupIndex - 3, 8)
+        ].sideGroup.worldMatrixNeedsUpdate = true;
         //// set the visibility of right-on-deck to true
         ALL_GROUPS[negMod(previousGroupIndex - 2, 8)].sideGroup.visible = true;
         //// set the animation targets
@@ -716,8 +722,8 @@ const main = async () => {
       for (const touch of IS_MOBILE ? event.changedTouches : [event]) {
         pointerBuffer.x = (touch.clientX / window.innerWidth) * 2 - 1;
         pointerBuffer.y = -(touch.clientY / window.innerHeight) * 2 + 1;
-        raycaster.setFromCamera(pointerBuffer, camera);
-        const intersects = raycaster.intersectObjects(touchAreas);
+        raycaster.castMouse(camera, pointerBuffer);
+        const intersects = raycaster.intersectBounds(touchAreas);
         if (intersects.length === 0) {
           continue;
         }
@@ -729,13 +735,11 @@ const main = async () => {
           ...rightSideGroup.railNoteTable[index]
         );
 
-        for (const {
-          object: { uuid },
-        } of intersects) {
+        for (const { id } of intersects) {
           //// start loop
 
           const touchIndex = touchAreas.findIndex(
-            (element) => element.uuid === uuid
+            (element) => element.id === id
           ); // 0,1,2,3 is the highway, 4 is the left, 5 is the right
 
           const latestLaneNote =
@@ -822,7 +826,7 @@ const main = async () => {
       document.documentElement.addEventListener("touchstart", handleTouch);
     }
     const renderLoop = () => {
-      raycaster.setFromCamera(pointerBuffer, camera);
+      raycaster.castMouse(camera, pointerBuffer);
 
       if (isPlaying) {
         const elapsedTime = audioContext.currentTime - beginTime;
@@ -841,13 +845,15 @@ const main = async () => {
             if (rotationAnimationDirection === SHIFT_INSTRUCTION.GO_LEFT) {
               // something to the far off right should be invisible
               ALL_GROUPS[negMod(currentGroupIndex - 2, 8)].visible = false;
-              mainGroup.highway.material.opacity = 1.0;
-              rightSideGroup.highway.material.opacity = SIDE_LANE_OPACITY;
+              mainGroup.highway.program.uniforms.uA.value = 1.0;
+              rightSideGroup.highway.program.uniforms.uA.value =
+                SIDE_LANE_OPACITY;
             } else {
               // something to the far off left should be invisible
               ALL_GROUPS[negMod(currentGroupIndex + 2, 8)].visible = false;
-              mainGroup.highway.material.opacity = 1.0;
-              leftSideGroup.highway.material.opacity = SIDE_LANE_OPACITY;
+              mainGroup.highway.program.uniforms.uA.value = 1.0;
+              leftSideGroup.highway.program.uniforms.uA.value =
+                SIDE_LANE_OPACITY;
             }
             // then set everything to false and empty the targets
             inRotationAnimation = false;
@@ -860,23 +866,20 @@ const main = async () => {
             const NORMALIZED_TIME =
               (elapsedTime - rotationAnimationStartsAt) / ROTATION_DURATION;
             if (rotationAnimationDirection === SHIFT_INSTRUCTION.GO_LEFT) {
-              mainGroup.highway.material.opacity = lerpyMcLerpLerp(
+              mainGroup.highway.program.uniforms.uA.value = lerpyMcLerpLerp(
                 SIDE_LANE_OPACITY,
                 1.0,
                 NORMALIZED_TIME
               );
-              rightSideGroup.highway.material.opacity = lerpyMcLerpLerp(
-                1.0,
-                SIDE_LANE_OPACITY,
-                NORMALIZED_TIME
-              );
+              rightSideGroup.highway.program.uniforms.uA.value =
+                lerpyMcLerpLerp(1.0, SIDE_LANE_OPACITY, NORMALIZED_TIME);
             } else {
-              mainGroup.highway.material.opacity = lerpyMcLerpLerp(
+              mainGroup.highway.program.uniforms.uA.value = lerpyMcLerpLerp(
                 SIDE_LANE_OPACITY,
                 1.0,
                 NORMALIZED_TIME
               );
-              leftSideGroup.highway.material.opacity = lerpyMcLerpLerp(
+              leftSideGroup.highway.program.uniforms.uA.value = lerpyMcLerpLerp(
                 1.0,
                 SIDE_LANE_OPACITY,
                 NORMALIZED_TIME
@@ -892,12 +895,12 @@ const main = async () => {
             }
           }
         }
-        mainGroup.laneNoteMesh.material.uniforms.uTime.value = elapsedTime;
-        mainGroup.railNoteMesh.material.uniforms.uTime.value = elapsedTime;
-        leftSideGroup.laneNoteMesh.material.uniforms.uTime.value = elapsedTime;
-        leftSideGroup.railNoteMesh.material.uniforms.uTime.value = elapsedTime;
-        rightSideGroup.laneNoteMesh.material.uniforms.uTime.value = elapsedTime;
-        rightSideGroup.railNoteMesh.material.uniforms.uTime.value = elapsedTime;
+        mainGroup.laneNoteMesh.program.uniforms.uTime.value = elapsedTime;
+        mainGroup.railNoteMesh.program.uniforms.uTime.value = elapsedTime;
+        leftSideGroup.laneNoteMesh.program.uniforms.uTime.value = elapsedTime;
+        leftSideGroup.railNoteMesh.program.uniforms.uTime.value = elapsedTime;
+        rightSideGroup.laneNoteMesh.program.uniforms.uTime.value = elapsedTime;
+        rightSideGroup.railNoteMesh.program.uniforms.uTime.value = elapsedTime;
         const index = Math.floor(elapsedTime * TABLE_DENSITY_PER_SECOND);
         const previousLanes =
           mainGroup.laneNoteTable[Math.max(index - REWIND_FACTOR, 0)];
@@ -928,12 +931,10 @@ const main = async () => {
         }
       }
 
-      tryResizeRendererToDisplay();
-
       if (import.meta.env.DEV) {
         stats.begin();
       }
-      renderer.render(scene, camera);
+      renderer.render({ scene, camera });
       if (import.meta.env.DEV) {
         stats.end();
       }

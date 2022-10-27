@@ -33,9 +33,9 @@
     "firebase": "^9.12.1",
     "flowbite": "^1.5.3",
     "mobile-detect": "^1.4.5",
+    "ogl": "^0.0.102",
     "rxjs": "^7.5.7",
     "screenfull": "^6.0.2",
-    "sweetalert2": "^11.5.2",
-    "three": "^0.144.0"
+    "sweetalert2": "^11.5.2"
   }
 }
