@@ -13,6 +13,7 @@
     "@capacitor/cli": "^4.3.0",
     "autoprefixer": "^10.4.12",
     "eslint": "^8.25.0",
+    "flowbite-typography": "^1.0.3",
     "htmlhint": "^1.1.4",
     "postcss": "^8.4.18",
     "prettier": "^2.7.1",

@@ -944,6 +944,7 @@ const main = async () => {
     requestAnimationFrame(renderLoop);
   };
   const introScreen = document.getElementById("intro-screen");
+  const aboutUs = document.getElementById("about-us");
   const friendScreen = document.getElementById("friend-screen");
   const waitForGameToStartScreen = document.getElementById("wait-screen");
   const ownerWaitScreen = document.getElementById("owner-wait-screen");
@@ -1072,6 +1073,18 @@ const main = async () => {
       introSpinner.classList.add("hidden");
       practiceScreen.classList.remove("hidden");
     } else {
+      document
+        .getElementById("about-us-button")
+        .addEventListener("click", async () => {
+          introScreen.classList.add("hidden");
+          aboutUs.classList.remove("hidden");
+        });
+        document
+        .getElementById("to-the-game")
+        .addEventListener("click", async () => {
+          aboutUs.classList.add("hidden");
+          introScreen.classList.remove("hidden");
+        });
       // we are starting from scratch
       gamePromise = signInPromise.then(createGame);
       const goHandler = () => {
